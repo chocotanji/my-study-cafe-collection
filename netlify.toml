@@ -2,6 +2,9 @@
 [build]
   publish = "frontend" 
 
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "CAFE_COLLECTION,CAFE_DATABASE,PORT,USER_INPUT_COLLECTION,USER_INPUT_DATABASE"
+
 # Netlify will run Express as a serverless function.
 [functions]
   directory = "backend/functions"

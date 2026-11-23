@@ -84,7 +84,7 @@ The browser automatically sends the anonymous cookie for preference requests; a 
 ## Deploy to Netlify
 
 1. Deploy the repository with Netlify's Git integration. `netlify.toml` configures the `frontend` publish directory, `backend/functions`, and the `/api/*` rewrite.
-2. Add `MONGODB_URI`, `CAFE_DATABASE`, `CAFE_COLLECTION`, `USER_INPUT_DATABASE`, and `USER_INPUT_COLLECTION` to Netlify's environment variables for Functions.
+2. Add `MONGODB_URI`, `CAFE_DATABASE`, `CAFE_COLLECTION`, `USER_INPUT_DATABASE`, and `USER_INPUT_COLLECTION` to Netlify's environment variables for Functions. Mark only `MONGODB_URI` as sensitive; the database names and collection names are public configuration and should be non-sensitive. `PORT` is only used for local startup and does not need to be set on Netlify. The build configuration omits only those non-sensitive setting names from secret scanning; `MONGODB_URI` is not omitted.
 3. Configure Atlas Network Access for Netlify and use the least-privileged database roles described above.
 4. Verify `/`, `/api/cafes`, and `/api/preferences` in a deploy preview. Check Netlify function logs for database errors.
 

@@ -1,13 +1,10 @@
 import express from 'express'
-import { fileURLToPath } from 'node:url'
 import serverless from 'serverless-http'
 import { getConfig } from '../config/environment.js'
 import { connectToDatabase } from '../database/connect.js'
 import { ensureAnonymousSession } from '../middleware/anonymousSession.js'
 import { cafesRouter } from '../routes/cafes.js'
 import { preferencesRouter } from '../routes/preferences.js'
-
-const collectionName = 'cafe list'
 
 export const app = express()
 
@@ -46,8 +43,7 @@ app.use((error, req, res, next) => {
 export const handler = serverless(app)
 
 if (!process.env.NETLIFY) {
-    const frontendDirectory = fileURLToPath(new URL('../../frontend/', import.meta.url))
-    app.use(express.static(frontendDirectory))
+    app.use(express.static('frontend'))
 
     async function startLocalServer() {
         try {
