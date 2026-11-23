@@ -6,7 +6,9 @@ const searchInput = document.querySelector('#search-terms')
 const preferences = new Map()
 const cafeMarkers = new Map()
 const geocodingCache = new Map()
+const torontoCenter = [43.6532, -79.3832]
 let cafeMap
+let cafeMarkerIcon
 let geocodingQueue = Promise.resolve()
 let lastGeocodingAt = 0
 
@@ -89,11 +91,17 @@ function initializeMap() {
         return
     }
 
-    cafeMap = window.L.map('cafe-map', { scrollWheelZoom: false }).setView([20, 0], 2)
+    cafeMap = window.L.map('cafe-map', { scrollWheelZoom: false }).setView(torontoCenter, 11)
     window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
     }).addTo(cafeMap)
+    cafeMarkerIcon = window.L.divIcon({
+        className: 'cafe-map-marker',
+        iconSize: [26, 36],
+        iconAnchor: [13, 36],
+        popupAnchor: [0, -32]
+    })
     mapStatus.textContent = 'Cafe locations will appear here.'
 }
 
@@ -138,7 +146,7 @@ function updateMapMarkers(cafes) {
         const coordinates = getCafeCoordinates(cafe)
         if (!coordinates) continue
 
-        const marker = window.L.marker([coordinates.lat, coordinates.lng])
+        const marker = window.L.marker([coordinates.lat, coordinates.lng], { icon: cafeMarkerIcon })
             .addTo(cafeMap)
             .bindPopup(markerPopup(cafe))
         cafeMarkers.set(String(cafe._id), marker)
@@ -149,7 +157,7 @@ function updateMapMarkers(cafes) {
         cafeMap.fitBounds(bounds, { padding: [32, 32], maxZoom: 14 })
         mapStatus.textContent = `${bounds.length} ${bounds.length === 1 ? 'cafe location is' : 'cafe locations are'} on the map. Select a pin to view cafe details.`
     } else {
-        cafeMap.setView([20, 0], 2)
+        cafeMap.setView(torontoCenter, 11)
         mapStatus.textContent = 'No coordinates in these results yet. Use “Show on map” on a cafe card to locate its address.'
     }
 }
@@ -169,8 +177,11 @@ async function geocodeAddress(address) {
         }
         lastGeocodingAt = Date.now()
 
+        const searchQuery = /\btoronto\b/i.test(query)
+            ? query
+            : `${query}, Toronto, Ontario, Canada`
         const response = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`,
+            `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(searchQuery)}`,
             { headers: { 'Accept-Language': navigator.language || 'en' } }
         )
         if (!response.ok) {
@@ -207,7 +218,7 @@ async function showCafeOnMap(cafe) {
 
         mapStatus.textContent = `Looking up the address for ${getCafeName(cafe)}…`
         const coordinates = await geocodeAddress(address)
-        marker = window.L.marker([coordinates.lat, coordinates.lng])
+        marker = window.L.marker([coordinates.lat, coordinates.lng], { icon: cafeMarkerIcon })
             .addTo(cafeMap)
             .bindPopup(markerPopup(cafe))
         cafeMarkers.set(cafeId, marker)

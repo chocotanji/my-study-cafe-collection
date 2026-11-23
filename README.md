@@ -53,7 +53,7 @@ Create `.env` locally with the settings above, then run these commands from the 
 
 - Fixed cafe documents are read from `cafe_list`.`cafe list`. The app does not insert, update, or delete fixed cafe records.
 - Cafe records with latitude/longitude or GeoJSON point coordinates appear as pins on the map. For address-only records, selecting **Show on map** looks up the exact address through OpenStreetMap Nominatim; those lookups are cached for the current page session.
-- The map uses Leaflet and OpenStreetMap tiles. Address lookup requests are sent to Nominatim only after a user selects a cafe without coordinates.
+- The map starts centered on Toronto and uses Leaflet and OpenStreetMap tiles. Address lookup requests are sent to Nominatim only after a user selects a cafe without coordinates; Toronto is added as search context when the address does not already mention it.
 - A random, HttpOnly cookie identifies an anonymous browser for up to one year. No account or personal information is required.
 - That browser's preferences are stored in `user_input`.`user input`, keyed to a hash of the anonymous session and the cafe ID.
 - Preferences do not sync between devices. Clearing the browser's cookies loses access to that browser's saved preferences.
