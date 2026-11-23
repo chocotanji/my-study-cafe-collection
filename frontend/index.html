@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f2eb">
+    <meta name="description" content="Browse cafes and keep your own private study preferences.">
+    <title>Study Cafe Collection</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="/script.js" type="module"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Study Cafe Collection home">
+        <span class="brand-mark" aria-hidden="true">SC</span>
+        <span>Study Cafe Collection</span>
+      </a>
+      <a class="header-link" href="#collection">Explore cafes <span aria-hidden="true">↓</span></a>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <p class="eyebrow">A little more focus, one cafe at a time</p>
+          <h1 id="page-title">Find your next<br><em>favorite study spot.</em></h1>
+          <p class="hero-description">Browse a curated cafe list, then save Wi-Fi and food ratings, favorites, and notes for your own browser.</p>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <span class="art-sun"></span>
+          <span class="art-cup"><span></span></span>
+          <span class="art-steam art-steam-one"></span>
+          <span class="art-steam art-steam-two"></span>
+          <span class="art-book"></span>
+        </div>
+      </section>
+
+      <section id="collection" class="collection-section" aria-labelledby="collection-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">The collection</p>
+            <h2 id="collection-title">Places to get in the zone</h2>
+          </div>
+          <form id="search-form" class="search-form" role="search">
+            <label class="sr-only" for="search-terms">Search cafes</label>
+            <input id="search-terms" name="terms" type="search" placeholder="Search cafes">
+            <button type="submit" class="search-button" aria-label="Search">
+              <span aria-hidden="true">⌕</span>
+            </button>
+          </form>
+        </div>
+        <p id="list-status" class="status-message" role="status" aria-live="polite">Loading cafes…</p>
+        <div id="cafe-list" class="cafe-grid" aria-live="polite"></div>
+        <p class="privacy-note">Your ratings and notes are stored in an anonymous browser collection. They aren’t shared or synced across devices.</p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>Made for good coffee and better focus.</span>
+      <a href="#page-title">Back to top ↑</a>
+    </footer>
+  </body>
+</html>
