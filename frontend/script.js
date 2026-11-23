@@ -239,7 +239,7 @@ function markerPopup(cafe) {
     if (isInPersonalCollection(cafeId)) {
         const tag = document.createElement('p')
         tag.className = 'map-popup-tag'
-        tag.textContent = preferences.get(cafeId)?.favorite ? '★ Favourite · In your list' : 'In your list'
+        tag.textContent = preferences.get(cafeId)?.favorite ? '♥ Favourite · In your list' : 'In your list'
         content.append(tag)
     }
 
@@ -628,9 +628,6 @@ function makeRatingSelect({ field, label, scale }, selectedValue) {
 
 function makeBadges(preference) {
     const badges = makeElement('div', 'card-badges')
-    if (preference.favorite) {
-        badges.append(makeElement('span', 'badge badge-favorite', '★ Favourite'))
-    }
     if (preference.recommend === true) {
         badges.append(makeElement('span', 'badge badge-recommend', '👍 Recommended'))
     } else if (preference.recommend === false) {
@@ -706,12 +703,6 @@ function makePreferenceForm(cafe, preference, status) {
         recommendGroup.append(optionLabel)
     }
 
-    const favoriteLabel = makeElement('label', 'check-label favorite-label')
-    const favorite = document.createElement('input')
-    favorite.type = 'checkbox'
-    favorite.name = 'favorite'
-    favorite.checked = Boolean(preference.favorite)
-    favoriteLabel.append(favorite, document.createTextNode(' Add to favourites'))
 
     const notesLabel = makeElement('label')
     notesLabel.append(document.createTextNode('Notes'))
@@ -734,7 +725,7 @@ function makePreferenceForm(cafe, preference, status) {
     })
     actions.append(cancelButton, saveButton)
 
-    form.append(ratings, recommendGroup, favoriteLabel, notesLabel, actions)
+    form.append(ratings, recommendGroup, notesLabel, actions)
 
     form.addEventListener('submit', async event => {
         event.preventDefault()
@@ -745,7 +736,7 @@ function makePreferenceForm(cafe, preference, status) {
                 const value = formData.get(field)
                 return [field, value ? Number(value) : null]
             })),
-            favorite: formData.has('favorite'),
+            favorite: Boolean(preferences.get(cafeId)?.favorite),
             recommend: recommendValue === 'yes' ? true : recommendValue === 'no' ? false : null,
             personalNotes: formData.get('personalNotes') ?? ''
         }
@@ -923,6 +914,63 @@ function replaceCard(cafe, { focus } = {}) {
     if (focus) card.querySelector(focus)?.focus()
 }
 
+function updateFavoriteButton(button, cafe, isFavorite) {
+    const name = getCafeName(cafe)
+    button.classList.toggle('is-favorite', isFavorite)
+    button.setAttribute('aria-pressed', String(isFavorite))
+    button.setAttribute('aria-label', `Favourite ${name}`)
+    button.title = isFavorite ? 'Remove from favourites' : 'Add to favourites'
+}
+
+// Heart toggle that saves the favourite straight away, without opening the editor.
+function makeFavoriteButton(cafe) {
+    const cafeId = String(cafe._id)
+    const button = makeElement('button', 'favorite-toggle')
+    button.type = 'button'
+    button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 20.5s-7.5-4.6-9.3-9.4C1.4 7.6 3.6 4 7.2 4c2 0 3.6 1.1 4.8 2.8C13.2 5.1 14.8 4 16.8 4c3.6 0 5.8 3.6 4.5 7.1-1.8 4.8-9.3 9.4-9.3 9.4z"/></svg>'
+    updateFavoriteButton(button, cafe, Boolean(preferences.get(cafeId)?.favorite))
+
+    button.addEventListener('click', async () => {
+        const current = { ...emptyPreference(cafeId), ...preferences.get(cafeId) }
+        const nextFavorite = !current.favorite
+        const body = {
+            ...Object.fromEntries(RATING_FIELDS.map(({ field }) => [field, current[field] ?? null])),
+            favorite: nextFavorite,
+            recommend: current.recommend ?? null,
+            personalNotes: current.personalNotes ?? ''
+        }
+
+        button.disabled = true
+        updateFavoriteButton(button, cafe, nextFavorite)
+        try {
+            const saved = await requestJson(`/api/preferences/${encodeURIComponent(cafeId)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            })
+            preferences.set(cafeId, { ...(preferences.get(cafeId) ?? {}), ...saved })
+            syncSavedMarkers()
+            const message = nextFavorite
+                ? `${getCafeName(cafe)} was added to your favourites.`
+                : `${getCafeName(cafe)} was removed from your favourites.`
+            if (currentFilter === 'favorites' && !nextFavorite && !openEditors.has(cafeId)) {
+                renderCafes(message)
+                return
+            }
+            const status = document.getElementById(`cafe-${cafeId}`)?.querySelector('[role="status"]')
+            if (status) status.textContent = message
+        } catch (error) {
+            updateFavoriteButton(button, cafe, current.favorite)
+            const status = document.getElementById(`cafe-${cafeId}`)?.querySelector('[role="status"]')
+            if (status) status.textContent = error.message
+        } finally {
+            button.disabled = false
+        }
+    })
+
+    return button
+}
+
 function makeCafeCard(cafe) {
     const cafeId = String(cafe._id)
     const inList = isInPersonalCollection(cafeId)
@@ -932,11 +980,12 @@ function makeCafeCard(cafe) {
     card.tabIndex = -1
 
     const topLine = makeElement('div', 'card-topline')
-    const marker = makeElement('span', 'card-marker', '✳')
-    marker.setAttribute('aria-hidden', 'true')
-    topLine.append(marker)
     if (inList) {
-        topLine.append(makeBadges(preference))
+        topLine.append(makeFavoriteButton(cafe), makeBadges(preference))
+    } else {
+        const marker = makeElement('span', 'card-marker', '✳')
+        marker.setAttribute('aria-hidden', 'true')
+        topLine.append(marker)
     }
 
     const title = makeElement('h3', null, getCafeName(cafe))
