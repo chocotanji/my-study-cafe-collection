@@ -6,7 +6,9 @@
     <meta name="theme-color" content="#f5f2eb">
     <meta name="description" content="Browse cafes and keep your own private study preferences.">
     <title>Study Cafe Collection</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="/style.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
     <script src="/script.js" type="module"></script>
   </head>
   <body>
@@ -15,7 +17,7 @@
         <span class="brand-mark" aria-hidden="true">SC</span>
         <span>Study Cafe Collection</span>
       </a>
-      <a class="header-link" href="#collection">Explore cafes <span aria-hidden="true">↓</span></a>
+      <a class="header-link" href="#map-section">Explore the map <span aria-hidden="true">↓</span></a>
     </header>
 
     <main>
@@ -32,6 +34,19 @@
           <span class="art-steam art-steam-two"></span>
           <span class="art-book"></span>
         </div>
+      </section>
+
+      <section id="map-section" class="map-section" aria-labelledby="map-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Find your way</p>
+            <h2 id="map-title">Explore cafes on the map</h2>
+          </div>
+          <p class="map-intro">Select a pin to see a cafe, or locate an address-only cafe from its card below.</p>
+        </div>
+        <p id="map-status" class="status-message" role="status" aria-live="polite">Loading map…</p>
+        <div id="cafe-map" class="cafe-map" aria-label="Map of cafes" role="region"></div>
+        <p class="map-attribution">Map data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. Address lookups are sent to OpenStreetMap Nominatim only when you select “Show on map”.</p>
       </section>
 
       <section id="collection" class="collection-section" aria-labelledby="collection-title">

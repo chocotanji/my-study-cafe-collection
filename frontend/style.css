@@ -228,12 +228,75 @@ h1 em {
   padding: 72px 0 82px;
 }
 
+.map-section {
+  padding: 62px 0 0;
+}
+
 .section-heading {
   display: flex;
   align-items: end;
   justify-content: space-between;
   gap: 24px;
   margin-bottom: 26px;
+}
+
+.map-intro {
+  max-width: 290px;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.cafe-map {
+  height: 440px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #e7e9df;
+}
+
+.map-attribution {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.map-attribution a {
+  color: var(--green);
+}
+
+.map-popup-address {
+  margin: 6px 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.map-popup-button,
+.map-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--green);
+  cursor: pointer;
+  font: 700 0.8rem 'DM Sans', sans-serif;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.map-popup-button {
+  margin-top: 5px;
+}
+
+.map-link {
+  margin-top: 3px;
+}
+
+.map-link:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 .section-heading h2,
@@ -609,6 +672,14 @@ h1 em {
   .section-heading {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .map-section {
+    padding-top: 48px;
+  }
+
+  .cafe-map {
+    height: 360px;
   }
 
   .search-form {

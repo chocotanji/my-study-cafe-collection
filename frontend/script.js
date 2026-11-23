@@ -1,8 +1,14 @@
 const cafeList = document.querySelector('#cafe-list')
 const listStatus = document.querySelector('#list-status')
+const mapStatus = document.querySelector('#map-status')
 const searchForm = document.querySelector('#search-form')
 const searchInput = document.querySelector('#search-terms')
 const preferences = new Map()
+const cafeMarkers = new Map()
+const geocodingCache = new Map()
+let cafeMap
+let geocodingQueue = Promise.resolve()
+let lastGeocodingAt = 0
 
 async function requestJson(url, options) {
     const response = await fetch(url, options)
@@ -23,9 +29,194 @@ function getCafeAddress(cafe) {
     if (typeof cafe.address === 'string') return cafe.address
     if (typeof cafe.location === 'string') return cafe.location
     if (cafe.location && typeof cafe.location === 'object') {
-        return cafe.location.address ?? cafe.location.formattedAddress ?? ''
+        const address = cafe.location.address ?? cafe.location.formattedAddress
+        return typeof address === 'string' ? address : ''
     }
     return ''
+}
+
+function validCoordinates(latitude, longitude) {
+    if (
+        latitude == null || longitude == null
+        || (typeof latitude === 'string' && !latitude.trim())
+        || (typeof longitude === 'string' && !longitude.trim())
+    ) {
+        return null
+    }
+
+    const lat = Number(latitude)
+    const lng = Number(longitude)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        return null
+    }
+    return { lat, lng }
+}
+
+function getCafeCoordinates(cafe) {
+    const candidates = [
+        [cafe.latitude, cafe.longitude],
+        [cafe.lat, cafe.lng ?? cafe.lon],
+        cafe.location,
+        cafe.coordinates,
+        cafe.geo,
+        cafe.geometry
+    ]
+
+    for (const candidate of candidates) {
+        if (Array.isArray(candidate) && candidate.length >= 2) {
+            const coordinates = validCoordinates(candidate[1], candidate[0])
+            if (coordinates) return coordinates
+        }
+
+        if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
+            const nestedCoordinates = Array.isArray(candidate.coordinates)
+                ? validCoordinates(candidate.coordinates[1], candidate.coordinates[0])
+                : null
+            const coordinates = nestedCoordinates ?? validCoordinates(
+                candidate.latitude ?? candidate.lat,
+                candidate.longitude ?? candidate.lng ?? candidate.lon
+            )
+            if (coordinates) return coordinates
+        }
+    }
+
+    return null
+}
+
+function initializeMap() {
+    if (!window.L) {
+        mapStatus.textContent = 'The map could not be loaded. Check your connection and reload the page.'
+        return
+    }
+
+    cafeMap = window.L.map('cafe-map', { scrollWheelZoom: false }).setView([20, 0], 2)
+    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+    }).addTo(cafeMap)
+    mapStatus.textContent = 'Cafe locations will appear here.'
+}
+
+function markerPopup(cafe) {
+    const content = document.createElement('div')
+    const name = document.createElement('strong')
+    name.textContent = getCafeName(cafe)
+    content.append(name)
+
+    const address = getCafeAddress(cafe)
+    if (address) {
+        const addressElement = document.createElement('p')
+        addressElement.className = 'map-popup-address'
+        addressElement.textContent = address
+        content.append(addressElement)
+    }
+
+    const detailsButton = document.createElement('button')
+    detailsButton.className = 'map-popup-button'
+    detailsButton.type = 'button'
+    detailsButton.textContent = 'View cafe details'
+    detailsButton.addEventListener('click', () => {
+        const card = document.getElementById(`cafe-${String(cafe._id)}`)
+        if (!card) return
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        card.focus({ preventScroll: true })
+    })
+    content.append(detailsButton)
+    return content
+}
+
+function updateMapMarkers(cafes) {
+    if (!cafeMap) return
+
+    for (const marker of cafeMarkers.values()) {
+        marker.remove()
+    }
+    cafeMarkers.clear()
+
+    const bounds = []
+    for (const cafe of cafes) {
+        const coordinates = getCafeCoordinates(cafe)
+        if (!coordinates) continue
+
+        const marker = window.L.marker([coordinates.lat, coordinates.lng])
+            .addTo(cafeMap)
+            .bindPopup(markerPopup(cafe))
+        cafeMarkers.set(String(cafe._id), marker)
+        bounds.push([coordinates.lat, coordinates.lng])
+    }
+
+    if (bounds.length > 0) {
+        cafeMap.fitBounds(bounds, { padding: [32, 32], maxZoom: 14 })
+        mapStatus.textContent = `${bounds.length} ${bounds.length === 1 ? 'cafe location is' : 'cafe locations are'} on the map. Select a pin to view cafe details.`
+    } else {
+        cafeMap.setView([20, 0], 2)
+        mapStatus.textContent = 'No coordinates in these results yet. Use “Show on map” on a cafe card to locate its address.'
+    }
+}
+
+async function geocodeAddress(address) {
+    const query = address.trim()
+    const cached = geocodingCache.get(query)
+    if (cached) return cached
+
+    const lookup = geocodingQueue.then(async () => {
+        const cachedResult = geocodingCache.get(query)
+        if (cachedResult) return cachedResult
+
+        const wait = Math.max(0, 1000 - (Date.now() - lastGeocodingAt))
+        if (wait > 0) {
+            await new Promise(resolve => setTimeout(resolve, wait))
+        }
+        lastGeocodingAt = Date.now()
+
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`,
+            { headers: { 'Accept-Language': navigator.language || 'en' } }
+        )
+        if (!response.ok) {
+            throw new Error('The address lookup service is unavailable. Please try again later.')
+        }
+
+        const results = await response.json()
+        const result = Array.isArray(results) ? results[0] : null
+        const coordinates = result ? validCoordinates(result.lat, result.lon) : null
+        if (!coordinates) {
+            throw new Error('No map location was found for this cafe address.')
+        }
+
+        geocodingCache.set(query, coordinates)
+        return coordinates
+    })
+
+    geocodingQueue = lookup.then(() => undefined, () => undefined)
+    return lookup
+}
+
+async function showCafeOnMap(cafe) {
+    if (!cafeMap) {
+        throw new Error('The map is not available. Check your connection and reload the page.')
+    }
+
+    const cafeId = String(cafe._id)
+    let marker = cafeMarkers.get(cafeId)
+    if (!marker) {
+        const address = getCafeAddress(cafe)
+        if (!address.trim()) {
+            throw new Error('This cafe has no coordinates or address in the dataset.')
+        }
+
+        mapStatus.textContent = `Looking up the address for ${getCafeName(cafe)}…`
+        const coordinates = await geocodeAddress(address)
+        marker = window.L.marker([coordinates.lat, coordinates.lng])
+            .addTo(cafeMap)
+            .bindPopup(markerPopup(cafe))
+        cafeMarkers.set(cafeId, marker)
+    }
+
+    const coordinates = marker.getLatLng()
+    cafeMap.setView(coordinates, 15)
+    marker.openPopup()
+    mapStatus.textContent = `${getCafeName(cafe)} is shown on the map.`
 }
 
 function makeRatingOptions(selectedValue) {
@@ -53,6 +244,8 @@ function makeCafeCard(cafe) {
     const saved = preferences.get(cafeId) ?? {}
     const card = document.createElement('article')
     card.className = 'cafe-card'
+    card.id = `cafe-${cafeId}`
+    card.tabIndex = -1
 
     const topLine = document.createElement('div')
     topLine.className = 'card-topline'
@@ -72,6 +265,25 @@ function makeCafeCard(cafe) {
         addressElement.className = 'cafe-address'
         addressElement.textContent = address
         card.append(addressElement)
+    }
+
+    if (address || getCafeCoordinates(cafe)) {
+        const mapButton = document.createElement('button')
+        mapButton.className = 'map-link'
+        mapButton.type = 'button'
+        mapButton.textContent = 'Show on map'
+        mapButton.addEventListener('click', async () => {
+            mapButton.disabled = true
+            mapStatus.textContent = `Finding ${getCafeName(cafe)}…`
+            try {
+                await showCafeOnMap(cafe)
+            } catch (error) {
+                mapStatus.textContent = error.message
+            } finally {
+                mapButton.disabled = false
+            }
+        })
+        card.append(mapButton)
     }
 
     if (typeof cafe.description === 'string' && cafe.description) {
@@ -134,6 +346,10 @@ function makeCafeCard(cafe) {
 async function loadCafes(terms = '') {
     listStatus.textContent = 'Loading cafes…'
     cafeList.replaceChildren()
+    if (cafeMap) {
+        updateMapMarkers([])
+        mapStatus.textContent = 'Loading cafe locations…'
+    }
 
     const query = terms.trim()
     const url = query
@@ -156,13 +372,16 @@ async function loadCafes(terms = '') {
             listStatus.textContent = query
                 ? 'No cafes match that search. Try another name.'
                 : 'No cafes were found in the fixed cafe collection.'
+            if (cafeMap) mapStatus.textContent = 'No cafes to show on the map.'
             return
         }
 
         listStatus.textContent = `${cafes.length} ${cafes.length === 1 ? 'place' : 'places'} to explore`
         cafeList.replaceChildren(...cafes.map(makeCafeCard))
+        updateMapMarkers(cafes)
     } catch (error) {
         listStatus.textContent = error.message
+        if (cafeMap) mapStatus.textContent = `Unable to load cafe locations: ${error.message}`
     }
 }
 
@@ -206,4 +425,5 @@ cafeList.addEventListener('submit', async event => {
     }
 })
 
+initializeMap()
 loadCafes()
