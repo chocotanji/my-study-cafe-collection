@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node --env-file=.env backend/functions/api.js",
     "dev": "node --watch --env-file=.env backend/functions/api.js",
+    "dev:netlify": "npx --yes netlify-cli dev",
     "test": "node --test"
   },
   "engines": {

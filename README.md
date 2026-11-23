@@ -42,7 +42,24 @@ The cafe database user should have read access to `cafe_list` and read/write acc
 
 ## Run locally
 
-Use Node.js 22 or newer:
+Use Node.js 22 or newer. Run every command from the project directory containing `package.json`.
+
+### With the Netlify CLI (recommended)
+
+This runs the frontend, the `/api/*` rewrite and the API function the same way Netlify does in production, and loads the environment variables saved on Netlify, so no `.env` file is needed.
+
+```sh
+npm install
+npx netlify-cli login
+npx netlify-cli link
+npm run dev:netlify
+```
+
+`login` and `link` are only needed once; choose **my-study-cafe-collection** when linking. Then open [http://localhost:8888](http://localhost:8888). `npm run dev:netlify` runs `netlify-cli dev` through `npx`, so the CLI doesn't have to be installed globally. If you already have `netlify` installed, `netlify dev` does the same thing.
+
+If port 8888 is busy, run `npx netlify-cli dev --port 8890` and open that port instead. If cafes fail to load with a MongoDB connection error, add your IP address to the Atlas cluster's network access list.
+
+### With plain Node
 
 ```sh
 npm install
@@ -50,7 +67,7 @@ npm test
 npm run dev
 ```
 
-Create `.env` locally with the settings above, then run these commands from the project directory containing `package.json`. Leave `NETLIFY` unset locally. The server connects to MongoDB before listening; configuration or database connection errors are reported at startup. Open [http://localhost:3000](http://localhost:3000).
+Create `.env` locally with the settings above first. Leave `NETLIFY` unset. The server connects to MongoDB before listening, and configuration or database connection errors are reported at startup. It serves both the page and the API on `PORT`, by default [http://localhost:3000](http://localhost:3000), and restarts when backend files change.
 
 ## Personal cafe list (CRUD)
 
@@ -101,11 +118,11 @@ All responses are JSON. The list and search results return up to 100 fixed cafe 
 
 The earlier read paths `/api/items` and `/api/search?terms=...` remain aliases. Search matches cafe `title`, `name`, `cafeName`, `address`, or `location` fields. Adding a cafe only accepts IDs that exist in the fixed cafe collection.
 
-Example:
+Example, with `netlify dev` running (use port 3000 instead with `npm run dev`):
 
 ```sh
-curl http://localhost:3000/api/cafes
-curl "http://localhost:3000/api/cafes/search?terms=quiet"
+curl http://localhost:8888/api/cafes
+curl "http://localhost:8888/api/cafes/search?terms=quiet"
 ```
 
 A direct API client should first call `/api/session` and then either keep the returned cookie or send the returned `token` in an `X-Study-Session` header.
@@ -113,7 +130,7 @@ A direct API client should first call `/api/session` and then either keep the re
 ## Deploy to Netlify
 
 1. Deploy the repository with Netlify's Git integration. `netlify.toml` configures the `frontend` publish directory, `backend/functions`, and the `/api/*` rewrite.
-2. Add `MONGODB_URI`, `CAFE_DATABASE`, `CAFE_COLLECTION`, `USER_INPUT_DATABASE`, and `USER_INPUT_COLLECTION` to Netlify's environment variables for Functions. Mark only `MONGODB_URI` as sensitive; the database names and collection names are public configuration and should be non-sensitive. `PORT` is only used for local startup and does not need to be set on Netlify. The build configuration omits only those non-sensitive setting names from secret scanning; `MONGODB_URI` is not omitted.
+2. Add `MONGODB_URI`, `CAFE_DATABASE`, `CAFE_COLLECTION`, `USER_INPUT_DATABASE`, and `USER_INPUT_COLLECTION` to Netlify's environment variables for Functions. Mark only `MONGODB_URI` as sensitive; the database names and collection names are public configuration and should be non-sensitive. `PORT` is only used by `npm run dev` / `npm start` and does not need to be set on Netlify. The build configuration omits only those non-sensitive setting names from secret scanning; `MONGODB_URI` is not omitted.
 3. Configure Atlas Network Access for Netlify and use the least-privileged database roles described above.
 4. Verify `/`, `/api/cafes`, `/api/collection`, and `/api/preferences` in a deploy preview. Check Netlify function logs for database errors.
 
