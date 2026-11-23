@@ -12,7 +12,8 @@ export const app = express()
 app.disable('x-powered-by')
 app.use(express.json({ limit: '10kb' }))
 app.get('/api/session', ensureAnonymousSession, (req, res) => {
-    res.json({ ok: true })
+    // The page keeps this token and sends it back with every request.
+    res.json({ ok: true, token: req.anonymousSessionToken })
 })
 app.use('/api', cafesRouter)
 app.use('/api/collection', collectionRouter)

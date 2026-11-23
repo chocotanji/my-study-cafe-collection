@@ -12,7 +12,7 @@ async function listCafes(req, res) {
     const db = await connectToDatabase(config.cafeDatabase)
     const cafes = await db.collection(config.cafeCollection)
         .find({})
-        .sort({ title: 1, name: 1 })
+        .sort({ cafeName: 1, title: 1, name: 1 })
         .limit(MAX_RESULTS)
         .toArray()
 
@@ -35,7 +35,7 @@ async function searchCafes(req, res) {
         .find({
             $or: searchableFields.map(field => ({ [field]: expression }))
         })
-        .sort({ title: 1, name: 1 })
+        .sort({ cafeName: 1, title: 1, name: 1 })
         .limit(MAX_RESULTS)
         .toArray()
 
