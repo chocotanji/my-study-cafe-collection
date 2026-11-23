@@ -531,10 +531,6 @@ h1 em {
   gap: 10px;
 }
 
-.preference-form .favorite-label {
-  justify-self: start;
-}
-
 .preference-form .form-footer {
   align-items: flex-start;
 }
@@ -626,7 +622,7 @@ h1 em {
   color: #a64e37;
 }
 
-.cafe-form input:not([type='checkbox']),
+.cafe-form input:not([type='checkbox']):not([type='radio']),
 .cafe-form select,
 .cafe-form textarea {
   width: 100%;
@@ -643,7 +639,7 @@ h1 em {
   resize: vertical;
 }
 
-.cafe-form input:focus,
+.cafe-form input:not([type='checkbox']):not([type='radio']):focus,
 .cafe-form select:focus,
 .cafe-form textarea:focus,
 .search-form:focus-within {
@@ -679,7 +675,22 @@ h1 em {
 }
 
 .check-label input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
   accent-color: var(--green);
+}
+
+.check-label input:focus {
+  outline: none;
+}
+
+.check-label input:focus-visible {
+  outline: 2px solid #86a48f;
+  outline-offset: 2px;
 }
 
 .form-footer {
@@ -943,9 +954,56 @@ h1 em {
   white-space: nowrap;
 }
 
-.badge-favorite {
+.favorite-toggle {
+  display: inline-flex;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  margin: -6px 0 -6px -6px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--orange);
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.favorite-toggle svg {
+  width: 22px;
+  height: 22px;
+  fill: transparent;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  transition: fill 0.15s ease;
+}
+
+.favorite-toggle:hover {
   background: #f6e6d6;
-  color: #9a5428;
+}
+
+.favorite-toggle:hover svg {
+  fill: rgba(215, 138, 86, 0.25);
+}
+
+.favorite-toggle.is-favorite svg {
+  fill: currentColor;
+}
+
+.favorite-toggle:active {
+  transform: scale(0.9);
+}
+
+.favorite-toggle:focus-visible {
+  outline: 2px solid #86a48f;
+  outline-offset: 2px;
+}
+
+.favorite-toggle:disabled {
+  cursor: progress;
 }
 
 .badge-not-recommend {
