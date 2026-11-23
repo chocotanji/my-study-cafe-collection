@@ -3,7 +3,7 @@ import { connectToDatabase } from '../database/connect.js'
 import { getConfig } from '../config/environment.js'
 
 const MAX_RESULTS = 100
-const searchableFields = ['title', 'name', 'address', 'location']
+const searchableFields = ['title', 'name', 'cafeName', 'address', 'location']
 
 export const cafesRouter = express.Router()
 

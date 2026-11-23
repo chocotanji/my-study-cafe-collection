@@ -11,7 +11,7 @@ backend/
   functions/api.js               Express app, Netlify handler, and local startup
   middleware/anonymousSession.js  Per-browser HttpOnly session cookie
   routes/cafes.js                Read and search fixed cafe records
-  routes/preferences.js          Read and save per-browser preferences
+  routes/preferences.js        Read, save, and delete per-browser preferences
   validation/preferences.js      Validate personal preference updates
 frontend/
   index.html                     Cafe list and search
@@ -58,6 +58,7 @@ Create `.env` locally with the settings above, then run these commands from the 
 - That browser's preferences are stored in `user_input`.`user input`, keyed to a hash of the anonymous session and the cafe ID.
 - Preferences do not sync between devices. Clearing the browser's cookies loses access to that browser's saved preferences.
 - Preference fields: `wifiQuality` and `foodQuality` (optional whole numbers from 1–5), `favorite` (boolean), and `personalNotes` (up to 1,000 characters).
+- Preference updates use an upsert scoped to the current anonymous browser and cafe. `DELETE /api/preferences/:cafeId` clears only that browser's saved preferences for the selected cafe; cafe directory records remain read-only.
 
 ## API
 
@@ -70,8 +71,9 @@ All responses are JSON. The list and search results return up to 100 fixed cafe 
 | `GET` | `/api/session` | Start or resume an anonymous browser session |
 | `GET` | `/api/preferences` | Get preferences for the current browser |
 | `PUT` | `/api/preferences/:cafeId` | Save Wi-Fi, food, favorite, and notes for a cafe |
+| `DELETE` | `/api/preferences/:cafeId` | Clear the current browser's saved preferences for a cafe |
 
-The earlier read paths `/api/items` and `/api/search?terms=...` remain aliases. Search matches cafe `title`, `name`, `address`, or `location` fields. Preference updates only accept IDs that exist in the fixed cafe collection.
+The earlier read paths `/api/items` and `/api/search?terms=...` remain aliases. Search matches cafe `title`, `name`, `cafeName`, `address`, or `location` fields. Preference updates only accept IDs that exist in the fixed cafe collection.
 
 Example:
 

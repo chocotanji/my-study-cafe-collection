@@ -3,14 +3,19 @@ const listStatus = document.querySelector('#list-status')
 const mapStatus = document.querySelector('#map-status')
 const searchForm = document.querySelector('#search-form')
 const searchInput = document.querySelector('#search-terms')
+const searchContainer = document.querySelector('.search-container')
+const searchSuggestions = document.querySelector('#search-suggestions')
 const preferences = new Map()
 const cafeMarkers = new Map()
 const geocodingCache = new Map()
 const torontoCenter = [43.6532, -79.3832]
 let cafeMap
 let cafeMarkerIcon
+let selectedCafeMarker
 let geocodingQueue = Promise.resolve()
 let lastGeocodingAt = 0
+let searchTimeout
+let cafeLoadRequestId = 0
 
 async function requestJson(url, options) {
     const response = await fetch(url, options)
@@ -57,10 +62,12 @@ function validCoordinates(latitude, longitude) {
 function getCafeCoordinates(cafe) {
     const candidates = [
         [cafe.latitude, cafe.longitude],
-        [cafe.lat, cafe.lng ?? cafe.lon],
+        [cafe.lat, cafe.longitude ?? cafe.lng ?? cafe.lon ?? cafe.long],
         cafe.location,
         cafe.coordinates,
         cafe.geo,
+        cafe.geolocation,
+        cafe.point,
         cafe.geometry
     ]
 
@@ -76,7 +83,7 @@ function getCafeCoordinates(cafe) {
                 : null
             const coordinates = nestedCoordinates ?? validCoordinates(
                 candidate.latitude ?? candidate.lat,
-                candidate.longitude ?? candidate.lng ?? candidate.lon
+                candidate.longitude ?? candidate.lng ?? candidate.lon ?? candidate.long
             )
             if (coordinates) return coordinates
         }
@@ -133,6 +140,22 @@ function markerPopup(cafe) {
     return content
 }
 
+function highlightCafeMarker(marker) {
+    if (selectedCafeMarker && selectedCafeMarker !== marker) {
+        selectedCafeMarker.getElement()?.classList.remove('is-selected')
+    }
+    selectedCafeMarker = marker
+    marker.getElement()?.classList.add('is-selected')
+}
+
+function createCafeMarker(cafe, coordinates) {
+    const marker = window.L.marker([coordinates.lat, coordinates.lng], { icon: cafeMarkerIcon })
+        .addTo(cafeMap)
+        .bindPopup(markerPopup(cafe))
+    marker.on('click', () => highlightCafeMarker(marker))
+    return marker
+}
+
 function updateMapMarkers(cafes) {
     if (!cafeMap) return
 
@@ -140,15 +163,14 @@ function updateMapMarkers(cafes) {
         marker.remove()
     }
     cafeMarkers.clear()
+    selectedCafeMarker = null
 
     const bounds = []
     for (const cafe of cafes) {
         const coordinates = getCafeCoordinates(cafe)
         if (!coordinates) continue
 
-        const marker = window.L.marker([coordinates.lat, coordinates.lng], { icon: cafeMarkerIcon })
-            .addTo(cafeMap)
-            .bindPopup(markerPopup(cafe))
+        const marker = createCafeMarker(cafe, coordinates)
         cafeMarkers.set(String(cafe._id), marker)
         bounds.push([coordinates.lat, coordinates.lng])
     }
@@ -218,16 +240,68 @@ async function showCafeOnMap(cafe) {
 
         mapStatus.textContent = `Looking up the address for ${getCafeName(cafe)}…`
         const coordinates = await geocodeAddress(address)
-        marker = window.L.marker([coordinates.lat, coordinates.lng], { icon: cafeMarkerIcon })
-            .addTo(cafeMap)
-            .bindPopup(markerPopup(cafe))
+        marker = createCafeMarker(cafe, coordinates)
         cafeMarkers.set(cafeId, marker)
     }
 
     const coordinates = marker.getLatLng()
     cafeMap.setView(coordinates, 15)
+    highlightCafeMarker(marker)
     marker.openPopup()
+    document.querySelector('#map-section').scrollIntoView({ behavior: 'smooth', block: 'start' })
     mapStatus.textContent = `${getCafeName(cafe)} is shown on the map.`
+}
+
+function hideSearchSuggestions() {
+    searchSuggestions.hidden = true
+    searchSuggestions.replaceChildren()
+    searchInput.setAttribute('aria-expanded', 'false')
+}
+
+function showSearchMessage(message) {
+    const option = document.createElement('button')
+    option.className = 'search-suggestion-message'
+    option.type = 'button'
+    option.role = 'option'
+    option.disabled = true
+    option.textContent = message
+    searchSuggestions.replaceChildren(option)
+    searchSuggestions.hidden = false
+    searchInput.setAttribute('aria-expanded', 'true')
+}
+
+function showSearchSuggestions(cafes) {
+    searchSuggestions.replaceChildren()
+    if (cafes.length === 0) {
+        showSearchMessage('No matching cafes found.')
+        return
+    }
+
+    for (const cafe of cafes.slice(0, 8)) {
+        const suggestion = document.createElement('button')
+        suggestion.className = 'search-suggestion'
+        suggestion.type = 'button'
+        suggestion.role = 'option'
+        suggestion.setAttribute('aria-selected', 'false')
+        suggestion.dataset.cafeId = String(cafe._id)
+        suggestion.dataset.cafeName = getCafeName(cafe)
+
+        const name = document.createElement('span')
+        name.textContent = getCafeName(cafe)
+        suggestion.append(name)
+
+        const address = getCafeAddress(cafe)
+        if (address) {
+            const addressElement = document.createElement('small')
+            addressElement.textContent = address
+            suggestion.append(addressElement)
+        }
+
+        searchSuggestions.append(suggestion)
+    }
+
+    searchSuggestions.hidden = false
+    searchInput.setAttribute('aria-expanded', 'true')
 }
 
 function makeRatingOptions(selectedValue) {
@@ -347,16 +421,49 @@ function makeCafeCard(cafe) {
     button.className = 'primary-button'
     button.type = 'submit'
     button.textContent = 'Save preferences'
-    footer.append(status, button)
+    const clearButton = document.createElement('button')
+    clearButton.className = 'secondary-button delete-preferences-button'
+    clearButton.type = 'button'
+    clearButton.textContent = 'Clear saved preferences'
+    clearButton.addEventListener('click', async () => {
+        button.disabled = true
+        clearButton.disabled = true
+        status.textContent = 'Clearing saved preferences…'
+
+        try {
+            const result = await requestJson(`/api/preferences/${encodeURIComponent(cafeId)}`, {
+                method: 'DELETE'
+            })
+            preferences.delete(cafeId)
+            form.elements.wifiQuality.value = ''
+            form.elements.foodQuality.value = ''
+            form.elements.favorite.checked = false
+            form.elements.personalNotes.value = ''
+            status.textContent = result.deleted
+                ? 'Saved preferences cleared from this browser.'
+                : 'No saved preferences were found for this cafe.'
+        } catch (error) {
+            status.textContent = error.message
+        } finally {
+            button.disabled = false
+            clearButton.disabled = false
+        }
+    })
+    const actions = document.createElement('div')
+    actions.className = 'form-actions'
+    actions.append(button, clearButton)
+    footer.append(status, actions)
 
     form.append(ratings, favoriteLabel, notesLabel, footer)
     card.append(form)
     return card
 }
 
-async function loadCafes(terms = '') {
+async function loadCafes(terms = '', selectedCafeId = '', { showSuggestions = false } = {}) {
+    const requestId = ++cafeLoadRequestId
     listStatus.textContent = 'Loading cafes…'
     cafeList.replaceChildren()
+    if (!terms.trim() || !showSuggestions) hideSearchSuggestions()
     if (cafeMap) {
         updateMapMarkers([])
         mapStatus.textContent = 'Loading cafe locations…'
@@ -373,13 +480,22 @@ async function loadCafes(terms = '') {
             requestJson(url),
             requestJson('/api/preferences')
         ])
+        if (requestId !== cafeLoadRequestId) return
+
+        if (showSuggestions && searchInput.value.trim() === terms.trim()) {
+            showSearchSuggestions(cafes)
+        }
 
         preferences.clear()
         for (const preference of savedPreferences) {
             preferences.set(preference.cafeId, preference)
         }
 
-        if (cafes.length === 0) {
+        const visibleCafes = selectedCafeId
+            ? cafes.filter(cafe => String(cafe._id) === selectedCafeId)
+            : cafes
+
+        if (visibleCafes.length === 0) {
             listStatus.textContent = query
                 ? 'No cafes match that search. Try another name.'
                 : 'No cafes were found in the fixed cafe collection.'
@@ -387,18 +503,57 @@ async function loadCafes(terms = '') {
             return
         }
 
-        listStatus.textContent = `${cafes.length} ${cafes.length === 1 ? 'place' : 'places'} to explore`
-        cafeList.replaceChildren(...cafes.map(makeCafeCard))
-        updateMapMarkers(cafes)
+        listStatus.textContent = `${visibleCafes.length} ${visibleCafes.length === 1 ? 'place' : 'places'} to explore`
+        cafeList.replaceChildren(...visibleCafes.map(makeCafeCard))
+        updateMapMarkers(visibleCafes)
+        if (selectedCafeId) {
+            document.getElementById(`cafe-${selectedCafeId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
     } catch (error) {
+        if (requestId !== cafeLoadRequestId) return
         listStatus.textContent = error.message
         if (cafeMap) mapStatus.textContent = `Unable to load cafe locations: ${error.message}`
+        if (showSuggestions && searchInput.value.trim() === terms.trim()) {
+            showSearchMessage('Search is unavailable. Please try again.')
+        }
     }
 }
 
 searchForm.addEventListener('submit', event => {
     event.preventDefault()
+    clearTimeout(searchTimeout)
+    hideSearchSuggestions()
     loadCafes(searchInput.value)
+})
+
+searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimeout)
+    cafeLoadRequestId += 1
+    const terms = searchInput.value.trim()
+    if (!terms) {
+        loadCafes()
+        return
+    }
+
+    hideSearchSuggestions()
+    searchTimeout = setTimeout(() => {
+        loadCafes(terms, '', { showSuggestions: true })
+    }, 250)
+})
+
+searchSuggestions.addEventListener('click', event => {
+    if (!(event.target instanceof Element)) return
+    const suggestion = event.target.closest('button[data-cafe-id]')
+    if (!(suggestion instanceof HTMLButtonElement)) return
+
+    clearTimeout(searchTimeout)
+    searchInput.value = suggestion.dataset.cafeName
+    hideSearchSuggestions()
+    loadCafes(searchInput.value, suggestion.dataset.cafeId)
+})
+
+document.addEventListener('click', event => {
+    if (!searchContainer.contains(event.target)) hideSearchSuggestions()
 })
 
 cafeList.addEventListener('submit', async event => {
@@ -408,6 +563,7 @@ cafeList.addEventListener('submit', async event => {
     event.preventDefault()
     const status = form.querySelector('.status-message')
     const button = form.querySelector('button[type="submit"]')
+    const clearButton = form.querySelector('.delete-preferences-button')
     const formData = new FormData(form)
     const wifiValue = formData.get('wifiQuality')
     const foodValue = formData.get('foodQuality')
@@ -419,6 +575,7 @@ cafeList.addEventListener('submit', async event => {
     }
 
     button.disabled = true
+    clearButton.disabled = true
     status.textContent = 'Saving…'
 
     try {
@@ -433,6 +590,7 @@ cafeList.addEventListener('submit', async event => {
         status.textContent = error.message
     } finally {
         button.disabled = false
+        clearButton.disabled = false
     }
 })
 

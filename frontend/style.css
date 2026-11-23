@@ -313,6 +313,11 @@ h1 em {
   content: '';
 }
 
+.cafe-map .cafe-map-marker.is-selected::before {
+  border-color: var(--orange);
+  transform: rotate(-45deg) scale(1.2);
+}
+
 .map-attribution {
   margin: 10px 0 0;
   color: var(--muted);
@@ -363,13 +368,77 @@ h1 em {
   letter-spacing: -0.035em;
 }
 
+.search-container {
+  position: relative;
+  width: min(340px, 100%);
+  flex: 0 1 340px;
+}
+
 .search-form {
   display: flex;
-  width: min(340px, 100%);
+  width: 100%;
   min-height: 46px;
   border: 1px solid var(--line);
   border-radius: 5px;
   background: var(--card);
+}
+
+.search-suggestions {
+  position: absolute;
+  z-index: 1000;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--card);
+  box-shadow: 0 8px 20px rgb(37 52 46 / 12%);
+}
+
+.search-suggestions[hidden] {
+  display: none;
+}
+
+.search-suggestion,
+.search-suggestion-message {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 3px;
+  padding: 11px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.search-suggestion:last-child,
+.search-suggestion-message {
+  border-bottom: 0;
+}
+
+.search-suggestion:hover,
+.search-suggestion:focus-visible {
+  background: var(--paper);
+}
+
+.search-suggestion small,
+.search-suggestion-message {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.search-suggestion-message {
+  cursor: default;
+}
+
+.search-suggestion-message:disabled {
+  opacity: 1;
 }
 
 .search-form input {
@@ -648,6 +717,33 @@ h1 em {
   opacity: 0.65;
 }
 
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.secondary-button {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--card);
+  color: var(--green);
+  cursor: pointer;
+  font: 700 0.75rem 'DM Sans', sans-serif;
+}
+
+.secondary-button:hover {
+  background: var(--paper);
+}
+
+.secondary-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .site-footer {
   display: flex;
   justify-content: space-between;
@@ -739,7 +835,7 @@ h1 em {
     height: 360px;
   }
 
-  .search-form {
+  .search-container {
     width: 100%;
   }
 

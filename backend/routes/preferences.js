@@ -44,7 +44,7 @@ preferencesRouter.get('/', async (req, res) => {
 
 preferencesRouter.put('/:cafeId', async (req, res) => {
     const cafeId = req.params.cafeId
-    if (!/^[a-f\d]{24}$/i.test(cafeId) && !/^[\w-]{1,100}$/.test(cafeId)) {
+    if (!isValidCafeId(cafeId)) {
         return res.status(400).json({ error: 'Cafe ID is invalid.' })
     }
 
@@ -75,6 +75,26 @@ preferencesRouter.put('/:cafeId', async (req, res) => {
 
     res.json({ cafeId, ...result.value, updatedAt: now })
 })
+
+preferencesRouter.delete('/:cafeId', async (req, res) => {
+    const cafeId = req.params.cafeId
+    if (!isValidCafeId(cafeId)) {
+        return res.status(400).json({ error: 'Cafe ID is invalid.' })
+    }
+
+    const config = getConfig()
+    const collection = await getPreferenceCollection(config)
+    const result = await collection.deleteOne({
+        sessionId: req.anonymousSessionId,
+        cafeId
+    })
+
+    res.json({ cafeId, deleted: result.deletedCount === 1 })
+})
+
+function isValidCafeId(cafeId) {
+    return /^[a-f\d]{24}$/i.test(cafeId) || /^[\w-]{1,100}$/.test(cafeId)
+}
 
 function toMongoId(cafeId) {
     return /^[a-f\d]{24}$/i.test(cafeId)
