@@ -857,3 +857,416 @@ h1 em {
     flex-direction: column;
   }
 }
+
+/* Personal cafe list */
+
+.list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.list-tools {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 2px;
+  scrollbar-width: thin;
+}
+
+.list-tools[hidden],
+.list-toolbar [hidden] {
+  display: none;
+}
+
+.filter-button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--card);
+  color: var(--green);
+  cursor: pointer;
+  font: 700 0.8rem 'DM Sans', sans-serif;
+  white-space: nowrap;
+}
+
+.filter-button:hover {
+  border-color: #b9c8bb;
+  background: #edf1e9;
+}
+
+.filter-button:focus-visible {
+  outline: 2px solid #86a48f;
+  outline-offset: 2px;
+}
+
+.filter-button[aria-pressed='true'] {
+  border-color: var(--green);
+  background: var(--green);
+  color: white;
+}
+
+.cafe-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.cafe-card.is-in-list {
+  border-color: #c9d4c6;
+}
+
+.card-topline {
+  gap: 10px;
+}
+
+.card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.badge {
+  padding: 4px 9px;
+  border-radius: 99px;
+  background: #edf1e9;
+  color: var(--green);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge-favorite {
+  background: #f6e6d6;
+  color: #9a5428;
+}
+
+.badge-not-recommend {
+  background: #f1e4df;
+  color: #8f3f2d;
+}
+
+.badge-score {
+  background: var(--green);
+  color: white;
+}
+
+.add-button {
+  align-self: flex-start;
+  min-height: 40px;
+  margin-top: 18px;
+  padding-inline: 14px;
+  font-size: 0.8rem;
+}
+
+.collection-action-status {
+  min-height: 1.4em;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.cafe-profile {
+  display: grid;
+  gap: 14px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.cafe-profile .preference-form {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.rating-summary {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.rating-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.8rem;
+}
+
+.rating-row dt {
+  color: var(--muted);
+}
+
+.rating-row dd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  text-align: right;
+}
+
+.rating-dots {
+  color: var(--orange);
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+}
+
+.rating-text {
+  min-width: 72px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.personal-notes {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--orange);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.85rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.empty-profile {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.profile-actions {
+  justify-content: flex-start;
+}
+
+.profile-actions .primary-button {
+  min-height: 40px;
+  padding-inline: 16px;
+  font-size: 0.78rem;
+}
+
+.preference-form .rating-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.preference-form .rating-field {
+  font-size: 0.76rem;
+}
+
+.preference-form .rating-field select {
+  min-height: 40px;
+  padding: 8px;
+  font-size: 0.82rem;
+}
+
+.recommend-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.recommend-group legend {
+  width: 100%;
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.preference-form .actions,
+.preference-form .form-actions {
+  justify-content: flex-start;
+}
+
+.danger-button {
+  color: #8f3f2d;
+}
+
+.danger-button:hover {
+  border-color: #d9b8ad;
+  background: #f7ece8;
+}
+
+@media (max-width: 1000px) and (min-width: 801px) {
+  .preference-form .rating-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Cafe details ("View more") */
+
+.cafe-details {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--paper);
+}
+
+.cafe-details summary {
+  padding: 9px 12px;
+  color: var(--green);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  list-style-position: inside;
+}
+
+.cafe-details summary:hover {
+  color: var(--green-dark);
+}
+
+.cafe-details summary:focus-visible {
+  outline: 2px solid #86a48f;
+  outline-offset: 2px;
+}
+
+.cafe-details[open] summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.cafe-details-body {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.detail-list,
+.hours-list {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.detail-row {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 10px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.detail-row dt {
+  color: var(--muted);
+}
+
+.detail-row dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.detail-row a {
+  color: var(--green);
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+
+.hours-list .detail-row {
+  grid-template-columns: 120px minmax(0, 1fr);
+}
+
+.hours-list .is-today {
+  font-weight: 700;
+}
+
+.hours-list .is-today dt,
+.today-label {
+  color: var(--green);
+}
+
+.today-label {
+  font-weight: 500;
+}
+
+.detail-heading {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.hours-raw {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.8rem;
+}
+
+/* Map pin variants and legend */
+
+.cafe-map .cafe-map-marker.is-favorite::before {
+  background: var(--orange);
+}
+
+.cafe-map .cafe-map-marker.is-favorite::after {
+  background: var(--card);
+}
+
+.cafe-map .cafe-map-marker.is-result::before {
+  border-style: dashed;
+  border-color: var(--green);
+  background: var(--card);
+}
+
+.cafe-map .cafe-map-marker.is-result::after {
+  background: var(--muted);
+}
+
+.cafe-map .cafe-map-marker.is-favorite.is-selected::before,
+.cafe-map .cafe-map-marker.is-result.is-selected::before {
+  border-color: var(--green-dark);
+}
+
+.map-popup-tag {
+  margin: 0 0 4px;
+  color: var(--green);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 10px 0 0;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  list-style: none;
+}
+
+.map-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.legend-pin {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--card);
+  border-radius: 50% 50% 50% 0;
+  background: var(--green);
+  box-shadow: 0 0 0 1px rgb(37 52 46 / 25%);
+  transform: rotate(-45deg);
+}
+
+.legend-pin.is-favorite {
+  background: var(--orange);
+}
+
+.legend-pin.is-result {
+  border: 2px dashed var(--green);
+  background: var(--card);
+  box-shadow: none;
+}

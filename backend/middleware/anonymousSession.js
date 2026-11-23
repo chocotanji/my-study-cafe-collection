@@ -2,10 +2,11 @@ import { createHash, randomBytes } from 'node:crypto'
 import { getConfig } from '../config/environment.js'
 
 const cookieName = 'study_collection_id'
+export const sessionHeaderName = 'x-study-session'
 const sessionIdPattern = /^[a-f0-9]{64}$/
 const maxAgeSeconds = 60 * 60 * 24 * 365
 
-function readSessionId(req) {
+function readCookieToken(req) {
     const cookieHeader = req.headers.cookie
     if (!cookieHeader) return null
 
@@ -17,20 +18,31 @@ function readSessionId(req) {
     return value && sessionIdPattern.test(value) ? value : null
 }
 
-export function ensureAnonymousSession(req, res, next) {
-    let sessionId = readSessionId(req)
+function readHeaderToken(req) {
+    const value = req.get(sessionHeaderName)?.trim()
+    return value && sessionIdPattern.test(value) ? value : null
+}
 
-    if (!sessionId) {
-        sessionId = randomBytes(32).toString('hex')
+// Identifies an anonymous browser. The page sends its token in a request
+// header (stored in localStorage), which keeps working when the site is
+// embedded in another page where cookies are blocked. The cookie remains a
+// fallback for direct API clients and for browsers that visited before the
+// header existed.
+export function ensureAnonymousSession(req, res, next) {
+    let token = readHeaderToken(req) ?? readCookieToken(req)
+
+    if (!token) {
+        token = randomBytes(32).toString('hex')
         const { secureCookies } = getConfig()
         const secureAttribute = secureCookies ? '; Secure' : ''
         res.append(
             'Set-Cookie',
-            `${cookieName}=${sessionId}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAgeSeconds}${secureAttribute}`
+            `${cookieName}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAgeSeconds}${secureAttribute}`
         )
     }
 
-    req.anonymousSessionId = createHash('sha256').update(sessionId).digest('hex')
+    req.anonymousSessionToken = token
+    req.anonymousSessionId = createHash('sha256').update(token).digest('hex')
     res.set('Cache-Control', 'no-store')
     next()
 }
