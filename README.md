@@ -33,7 +33,7 @@ USER_INPUT_COLLECTION="user input"
 PORT=3000
 ```
 
-Keep `.env.example` as the safe template. Copy it to the ignored local `.env`, replace the URI with a newly rotated credential, and never commit `.env`. Netlify uses the same variable names configured in its environment-variable settings; it does not read local `.env`.
+All `.env*` files are intentionally ignored by Git, including `.env.example`. Create a local `.env` using the variable names above, enter a newly rotated URI, and never commit the file. Netlify uses the same variable names configured in its environment-variable settings; it does not read local `.env`.
 
 The cafe database user should have read access to `cafe_list` and read/write access to `user_input`. The app creates a unique index on the preference collection the first time preferences are saved.
 
@@ -43,12 +43,11 @@ Use Node.js 22 or newer:
 
 ```sh
 npm install
-cp .env.example .env
 npm test
 npm run dev
 ```
 
-Run these commands from the project directory containing `package.json`. Leave `NETLIFY` unset locally. The server connects to MongoDB before listening; configuration or database connection errors are reported at startup. Open [http://localhost:3000](http://localhost:3000).
+Create `.env` locally with the settings above, then run these commands from the project directory containing `package.json`. Leave `NETLIFY` unset locally. The server connects to MongoDB before listening; configuration or database connection errors are reported at startup. Open [http://localhost:3000](http://localhost:3000).
 
 ## Data behavior
 
