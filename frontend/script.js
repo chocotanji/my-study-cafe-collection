@@ -324,6 +324,11 @@ function makeRatingOptions(selectedValue) {
     return select
 }
 
+function isInPersonalCollection(cafeId) {
+    const preference = preferences.get(cafeId)
+    return Boolean(preference && preference.inCollection !== false)
+}
+
 function makeCafeCard(cafe) {
     const cafeId = String(cafe._id)
     const saved = preferences.get(cafeId) ?? {}
@@ -352,6 +357,35 @@ function makeCafeCard(cafe) {
         card.append(addressElement)
     }
 
+    const collectionStatus = document.createElement('p')
+    collectionStatus.className = 'collection-action-status'
+    collectionStatus.setAttribute('role', 'status')
+    collectionStatus.setAttribute('aria-live', 'polite')
+    const collectionButton = document.createElement('button')
+    collectionButton.className = 'collection-action-button'
+    collectionButton.type = 'button'
+    collectionButton.textContent = isInPersonalCollection(cafeId) ? 'Delete' : 'Add'
+    collectionButton.addEventListener('click', async () => {
+        const adding = !isInPersonalCollection(cafeId)
+        collectionButton.disabled = true
+        collectionStatus.textContent = adding ? 'Adding to your collection…' : 'Removing from your collection…'
+
+        try {
+            const result = await requestJson(`/api/collection/${encodeURIComponent(cafeId)}`, {
+                method: adding ? 'POST' : 'DELETE'
+            })
+            preferences.set(cafeId, {
+                ...(preferences.get(cafeId) ?? {}),
+                ...result
+            })
+            await loadCafes(searchInput.value.trim())
+        } catch (error) {
+            collectionStatus.textContent = error.message
+            collectionButton.disabled = false
+        }
+    })
+    card.append(collectionButton, collectionStatus)
+
     if (address || getCafeCoordinates(cafe)) {
         const mapButton = document.createElement('button')
         mapButton.className = 'map-link'
@@ -378,84 +412,72 @@ function makeCafeCard(cafe) {
         card.append(description)
     }
 
-    const form = document.createElement('form')
-    form.className = 'cafe-form preference-form'
-    form.dataset.cafeId = cafeId
+    if (isInPersonalCollection(cafeId)) {
+        const form = document.createElement('form')
+        form.className = 'cafe-form preference-form'
+        form.dataset.cafeId = cafeId
+        const hasSavedPreference = Boolean(saved.updatedAt)
 
-    const ratings = document.createElement('div')
-    ratings.className = 'form-row'
-    for (const [field, label] of [['wifiQuality', 'Wi-Fi'], ['foodQuality', 'Food']]) {
-        const fieldLabel = document.createElement('label')
-        fieldLabel.textContent = `${label} quality`
-        const select = makeRatingOptions(saved[field])
-        select.name = field
-        fieldLabel.append(select)
-        ratings.append(fieldLabel)
+        const ratings = document.createElement('div')
+        ratings.className = 'form-row'
+        for (const [field, label] of [['wifiQuality', 'Wi-Fi'], ['foodQuality', 'Food']]) {
+            const fieldLabel = document.createElement('label')
+            fieldLabel.textContent = `${label} quality`
+            const select = makeRatingOptions(saved[field])
+            select.name = field
+            select.disabled = hasSavedPreference
+            fieldLabel.append(select)
+            ratings.append(fieldLabel)
+        }
+
+        const favoriteLabel = document.createElement('label')
+        favoriteLabel.className = 'check-label favorite-label'
+        const favorite = document.createElement('input')
+        favorite.type = 'checkbox'
+        favorite.name = 'favorite'
+        favorite.checked = Boolean(saved.favorite)
+        favorite.disabled = hasSavedPreference
+        favoriteLabel.append(favorite, document.createTextNode(' Save to favorites'))
+
+        const notesLabel = document.createElement('label')
+        notesLabel.textContent = 'Personal notes'
+        const notes = document.createElement('textarea')
+        notes.name = 'personalNotes'
+        notes.maxLength = 1000
+        notes.rows = 2
+        notes.placeholder = 'Your own reminder…'
+        notes.value = saved.personalNotes ?? ''
+        notes.disabled = hasSavedPreference
+        notesLabel.append(notes)
+
+        const footer = document.createElement('div')
+        footer.className = 'form-footer'
+        const status = document.createElement('p')
+        status.className = 'status-message'
+        status.setAttribute('role', 'status')
+        status.setAttribute('aria-live', 'polite')
+        const button = document.createElement('button')
+        button.className = 'primary-button'
+        button.type = hasSavedPreference ? 'button' : 'submit'
+        button.textContent = hasSavedPreference ? 'Edit' : 'Save'
+        button.addEventListener('click', () => {
+            if (button.type !== 'button') return
+            for (const field of form.querySelectorAll('[name]')) {
+                field.disabled = false
+            }
+            button.type = 'submit'
+            button.textContent = 'Save'
+            status.textContent = 'Edit your preferences, then save.'
+        })
+        const actions = document.createElement('div')
+        actions.className = 'form-actions'
+        actions.append(button)
+        footer.append(status, actions)
+
+        form.append(ratings, favoriteLabel, notesLabel, footer)
+        card.append(form)
     }
 
-    const favoriteLabel = document.createElement('label')
-    favoriteLabel.className = 'check-label favorite-label'
-    const favorite = document.createElement('input')
-    favorite.type = 'checkbox'
-    favorite.name = 'favorite'
-    favorite.checked = Boolean(saved.favorite)
-    favoriteLabel.append(favorite, document.createTextNode(' Save to favorites'))
-
-    const notesLabel = document.createElement('label')
-    notesLabel.textContent = 'Personal notes'
-    const notes = document.createElement('textarea')
-    notes.name = 'personalNotes'
-    notes.maxLength = 1000
-    notes.rows = 2
-    notes.placeholder = 'Your own reminder…'
-    notes.value = saved.personalNotes ?? ''
-    notesLabel.append(notes)
-
-    const footer = document.createElement('div')
-    footer.className = 'form-footer'
-    const status = document.createElement('p')
-    status.className = 'status-message'
-    status.setAttribute('role', 'status')
-    status.setAttribute('aria-live', 'polite')
-    const button = document.createElement('button')
-    button.className = 'primary-button'
-    button.type = 'submit'
-    button.textContent = 'Save preferences'
-    const clearButton = document.createElement('button')
-    clearButton.className = 'secondary-button delete-preferences-button'
-    clearButton.type = 'button'
-    clearButton.textContent = 'Clear saved preferences'
-    clearButton.addEventListener('click', async () => {
-        button.disabled = true
-        clearButton.disabled = true
-        status.textContent = 'Clearing saved preferences…'
-
-        try {
-            const result = await requestJson(`/api/preferences/${encodeURIComponent(cafeId)}`, {
-                method: 'DELETE'
-            })
-            preferences.delete(cafeId)
-            form.elements.wifiQuality.value = ''
-            form.elements.foodQuality.value = ''
-            form.elements.favorite.checked = false
-            form.elements.personalNotes.value = ''
-            status.textContent = result.deleted
-                ? 'Saved preferences cleared from this browser.'
-                : 'No saved preferences were found for this cafe.'
-        } catch (error) {
-            status.textContent = error.message
-        } finally {
-            button.disabled = false
-            clearButton.disabled = false
-        }
-    })
-    const actions = document.createElement('div')
-    actions.className = 'form-actions'
-    actions.append(button, clearButton)
-    footer.append(status, actions)
-
-    form.append(ratings, favoriteLabel, notesLabel, footer)
-    card.append(form)
     return card
 }
 
@@ -472,7 +494,7 @@ async function loadCafes(terms = '', selectedCafeId = '', { showSuggestions = fa
     const query = terms.trim()
     const url = query
         ? `/api/cafes/search?terms=${encodeURIComponent(query)}`
-        : '/api/cafes'
+        : '/api/collection'
 
     try {
         await requestJson('/api/session')
@@ -498,7 +520,7 @@ async function loadCafes(terms = '', selectedCafeId = '', { showSuggestions = fa
         if (visibleCafes.length === 0) {
             listStatus.textContent = query
                 ? 'No cafes match that search. Try another name.'
-                : 'No cafes were found in the fixed cafe collection.'
+                : 'Your collection is empty. Search for a cafe to add it.'
             if (cafeMap) mapStatus.textContent = 'No cafes to show on the map.'
             return
         }
@@ -563,7 +585,6 @@ cafeList.addEventListener('submit', async event => {
     event.preventDefault()
     const status = form.querySelector('.status-message')
     const button = form.querySelector('button[type="submit"]')
-    const clearButton = form.querySelector('.delete-preferences-button')
     const formData = new FormData(form)
     const wifiValue = formData.get('wifiQuality')
     const foodValue = formData.get('foodQuality')
@@ -575,7 +596,6 @@ cafeList.addEventListener('submit', async event => {
     }
 
     button.disabled = true
-    clearButton.disabled = true
     status.textContent = 'Saving…'
 
     try {
@@ -584,13 +604,20 @@ cafeList.addEventListener('submit', async event => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(preference)
         })
-        preferences.set(saved.cafeId, saved)
+        preferences.set(saved.cafeId, {
+            ...(preferences.get(saved.cafeId) ?? {}),
+            ...saved
+        })
+        for (const field of form.querySelectorAll('[name]')) {
+            field.disabled = true
+        }
+        button.type = 'button'
+        button.textContent = 'Edit'
         status.textContent = 'Preferences saved in this browser.'
     } catch (error) {
         status.textContent = error.message
     } finally {
         button.disabled = false
-        clearButton.disabled = false
     }
 })
 

@@ -4,6 +4,7 @@ import { getConfig } from '../config/environment.js'
 import { connectToDatabase } from '../database/connect.js'
 import { ensureAnonymousSession } from '../middleware/anonymousSession.js'
 import { cafesRouter } from '../routes/cafes.js'
+import { collectionRouter } from '../routes/collection.js'
 import { preferencesRouter } from '../routes/preferences.js'
 
 export const app = express()
@@ -14,6 +15,7 @@ app.get('/api/session', ensureAnonymousSession, (req, res) => {
     res.json({ ok: true })
 })
 app.use('/api', cafesRouter)
+app.use('/api/collection', collectionRouter)
 app.use('/api/preferences', preferencesRouter)
 app.use('/api', (req, res) => {
     res.status(404).json({ error: 'API route not found.' })

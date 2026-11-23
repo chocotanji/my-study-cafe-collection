@@ -1,33 +1,14 @@
 import express from 'express'
 import { ObjectId } from 'mongodb'
 import { connectToDatabase } from '../database/connect.js'
+import { getPreferenceCollection } from '../database/preferences.js'
 import { getConfig } from '../config/environment.js'
 import { ensureAnonymousSession } from '../middleware/anonymousSession.js'
 import { validatePreference } from '../validation/preferences.js'
 
 export const preferencesRouter = express.Router()
 
-let indexPromise
-
 preferencesRouter.use(ensureAnonymousSession)
-
-async function getPreferenceCollection(config) {
-    const db = await connectToDatabase(config.userInputDatabase)
-    const collection = db.collection(config.userInputCollection)
-
-    if (!indexPromise) {
-        indexPromise = collection.createIndex(
-            { sessionId: 1, cafeId: 1 },
-            { unique: true }
-        ).catch(error => {
-            indexPromise = undefined
-            throw error
-        })
-    }
-
-    await indexPromise
-    return collection
-}
 
 preferencesRouter.get('/', async (req, res) => {
     const config = getConfig()
@@ -74,22 +55,6 @@ preferencesRouter.put('/:cafeId', async (req, res) => {
     )
 
     res.json({ cafeId, ...result.value, updatedAt: now })
-})
-
-preferencesRouter.delete('/:cafeId', async (req, res) => {
-    const cafeId = req.params.cafeId
-    if (!isValidCafeId(cafeId)) {
-        return res.status(400).json({ error: 'Cafe ID is invalid.' })
-    }
-
-    const config = getConfig()
-    const collection = await getPreferenceCollection(config)
-    const result = await collection.deleteOne({
-        sessionId: req.anonymousSessionId,
-        cafeId
-    })
-
-    res.json({ cafeId, deleted: result.deletedCount === 1 })
 })
 
 function isValidCafeId(cafeId) {
