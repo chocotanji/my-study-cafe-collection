@@ -34,7 +34,6 @@ let searchTimeout
 let cafeLoadRequestId = 0
 let currentCafes = []
 let currentQuery = ''
-let currentView = 'directory'
 let visibleCafeCount = PAGE_SIZE
 let currentSelectedCafeId = ''
 const openEditors = new Set()
@@ -43,13 +42,13 @@ const openDetails = new Set()
 
 // Kept in sync with backend/validation/preferences.js.
 const RATING_FIELDS = [
-    { field: 'wifiQuality', label: 'Wi-Fi quality', scale: ['Unusable', 'Patchy', 'Okay', 'Fast', 'Excellent'] },
-    { field: 'powerOutlets', label: 'Power outlets', scale: ['Hardly any', 'A few', 'Some', 'Plenty', 'At every seat'] },
-    { field: 'studyFriendly', label: 'Study friendly', scale: ['Not at all', 'A little', 'Somewhat', 'Very', 'Ideal'] },
-    { field: 'spacious', label: 'Spacious', scale: ['Cramped', 'Snug', 'Comfortable', 'Roomy', 'Very spacious'] },
-    { field: 'cleanliness', label: 'Cleanliness', scale: ['Dirty', 'Untidy', 'Clean enough', 'Clean', 'Spotless'] },
-    { field: 'noiseLevel', label: 'Noise level', scale: ['Silent', 'Quiet', 'Moderate', 'Lively', 'Loud'], lowerIsBetter: true },
-    { field: 'foodAndDrinkQuality', label: 'Food & drink', scale: ['Poor', 'Fair', 'Good', 'Very good', 'Excellent'] }
+    { field: 'wifiQuality', label: 'Wi-Fi quality' },
+    { field: 'powerOutlets', label: 'Power outlets' },
+    { field: 'studyFriendly', label: 'Study friendly' },
+    { field: 'spacious', label: 'Spacious' },
+    { field: 'cleanliness', label: 'Cleanliness' },
+    { field: 'noiseLevel', label: 'Noise level', lowerIsBetter: true },
+    { field: 'foodAndDrinkQuality', label: 'Food & drink' }
 ]
 
 function emptyPreference(cafeId) {
@@ -266,9 +265,10 @@ async function openCafeCard(cafeId) {
         clearTimeout(searchTimeout)
         searchInput.value = ''
         setFilter('all')
-        await loadCafes('', '', { view: 'list' })
+        currentSelectedCafeId = ''
+        await loadCafes()
         card = document.getElementById(`cafe-${cafeId}`)
-        while (!card && currentView === 'list' && visibleCafeCount < currentCafes.length) {
+        while (!card && visibleCafeCount < currentCafes.length) {
             visibleCafeCount += PAGE_SIZE
             renderCafes()
             card = document.getElementById(`cafe-${cafeId}`)
@@ -616,25 +616,53 @@ function makeStatus(className = 'collection-action-status') {
     return status
 }
 
-function makeRatingSelect({ field, label, scale }, selectedValue) {
-    const fieldLabel = makeElement('label', 'rating-field')
-    fieldLabel.append(document.createTextNode(label))
-    const select = document.createElement('select')
-    select.name = field
+function makeRatingSlider({ field, label, lowerIsBetter }, selectedValue, cafeId) {
+    const fieldId = `cafe-${cafeId}-rating-${field}`
+    const fieldContainer = makeElement('div', 'rating-field')
+    fieldContainer.dataset.ratingField = field
 
-    const unrated = makeElement('option', null, 'Not rated')
-    unrated.value = ''
-    select.append(unrated)
+    const fieldLabel = makeElement('label', null, label)
+    fieldLabel.htmlFor = fieldId
 
-    scale.forEach((description, index) => {
-        const option = makeElement('option', null, `${index + 1} · ${description}`)
-        option.value = String(index + 1)
-        select.append(option)
+    const displayValue = selectedValue == null
+        ? 3
+        : lowerIsBetter ? 6 - selectedValue : selectedValue
+    const valueOutput = document.createElement('output')
+    valueOutput.className = 'rating-value'
+    valueOutput.htmlFor = fieldId
+    valueOutput.textContent = selectedValue == null ? 'Not rated' : `${displayValue}/5`
+
+    const slider = document.createElement('input')
+    slider.type = 'range'
+    slider.id = fieldId
+    slider.name = field
+    slider.min = '1'
+    slider.max = '5'
+    slider.step = '1'
+    slider.value = String(displayValue)
+    slider.disabled = selectedValue == null
+    slider.setAttribute('aria-valuetext', selectedValue == null ? 'Not rated' : `${displayValue} out of 5`)
+
+    const unratedLabel = makeElement('label', 'rating-unrated')
+    const unrated = document.createElement('input')
+    unrated.type = 'checkbox'
+    unrated.name = `${field}-unrated`
+    unrated.checked = selectedValue == null
+    unrated.setAttribute('aria-label', `Mark ${label} as not rated`)
+    unratedLabel.append(unrated, document.createTextNode('Not rated'))
+
+    unrated.addEventListener('change', () => {
+        slider.disabled = unrated.checked
+        valueOutput.textContent = unrated.checked ? 'Not rated' : `${slider.value}/5`
+        slider.setAttribute('aria-valuetext', unrated.checked ? 'Not rated' : `${slider.value} out of 5`)
+    })
+    slider.addEventListener('input', () => {
+        valueOutput.textContent = `${slider.value}/5`
+        slider.setAttribute('aria-valuetext', `${slider.value} out of 5`)
     })
 
-    select.value = selectedValue == null ? '' : String(selectedValue)
-    fieldLabel.append(select)
-    return fieldLabel
+    fieldContainer.append(fieldLabel, valueOutput, slider, unratedLabel)
+    return fieldContainer
 }
 
 function makeBadges(preference) {
@@ -660,16 +688,17 @@ function makePreferenceSummary(preference) {
 
     if (hasRatings(preference)) {
         const list = makeElement('dl', 'rating-summary')
-        for (const { field, label, scale } of RATING_FIELDS) {
+        for (const { field, label, lowerIsBetter } of RATING_FIELDS) {
             const value = preference[field]
             if (value == null) continue
+            const displayValue = lowerIsBetter ? 6 - value : value
             const row = makeElement('div', 'rating-row')
             const term = makeElement('dt', null, label)
             const detail = makeElement('dd')
-            const dots = makeElement('span', 'rating-dots', '●'.repeat(value) + '○'.repeat(5 - value))
+            const dots = makeElement('span', 'rating-dots', '●'.repeat(displayValue) + '○'.repeat(5 - displayValue))
             dots.setAttribute('aria-hidden', 'true')
-            const text = makeElement('span', 'rating-text', scale[value - 1])
-            const srText = makeElement('span', 'sr-only', `${value} out of 5, `)
+            const text = makeElement('span', 'rating-text', `${displayValue}/5`)
+            const srText = makeElement('span', 'sr-only', `${displayValue} out of 5, `)
             detail.append(dots, srText, text)
             row.append(term, detail)
             list.append(row)
@@ -697,8 +726,9 @@ function makePreferenceForm(cafe, preference, status) {
 
     const ratings = makeElement('div', 'form-row rating-grid')
     for (const ratingField of RATING_FIELDS) {
-        ratings.append(makeRatingSelect(ratingField, preference[ratingField.field]))
+        ratings.append(makeRatingSlider(ratingField, preference[ratingField.field], cafeId))
     }
+    const ratingScaleHint = makeElement('p', 'rating-scale-hint', '1 = Worst, 5 = Best')
 
     const recommendGroup = makeElement('fieldset', 'recommend-group')
     recommendGroup.append(makeElement('legend', null, 'Would you recommend it?'))
@@ -736,17 +766,19 @@ function makePreferenceForm(cafe, preference, status) {
     })
     actions.append(cancelButton, saveButton)
 
-    form.append(ratings, recommendGroup, notesLabel, actions)
+    form.append(ratingScaleHint, ratings, recommendGroup, notesLabel, actions)
 
     form.addEventListener('submit', async event => {
         event.preventDefault()
         const formData = new FormData(form)
         const recommendValue = formData.get('recommend')
+        const ratingValues = Object.fromEntries(RATING_FIELDS.map(({ field, lowerIsBetter }) => {
+            if (formData.has(`${field}-unrated`)) return [field, null]
+            const displayValue = Number(formData.get(field))
+            return [field, lowerIsBetter ? 6 - displayValue : displayValue]
+        }))
         const body = {
-            ...Object.fromEntries(RATING_FIELDS.map(({ field }) => {
-                const value = formData.get(field)
-                return [field, value ? Number(value) : null]
-            })),
+            ...ratingValues,
             favorite: Boolean(preferences.get(cafeId)?.favorite),
             recommend: recommendValue === 'yes' ? true : recommendValue === 'no' ? false : null,
             personalNotes: formData.get('personalNotes') ?? ''
@@ -982,7 +1014,7 @@ function makeFavoriteButton(cafe) {
                 replaceCard(cafe)
                 return
             }
-            if (currentView === 'list' && currentFilter === 'favorites' && !nextFavorite && !openEditors.has(cafeId)) {
+            if (currentFilter === 'favorite' && !nextFavorite && !openEditors.has(cafeId)) {
                 renderCafes(message)
                 return
             }
@@ -1126,9 +1158,6 @@ function makeCafeCard(cafe) {
             savedCafes.delete(cafeId)
             failedLocations.delete(cafeId)
             openEditors.delete(cafeId)
-            if (currentView === 'list' && !currentQuery) {
-                currentCafes = currentCafes.filter(item => String(item._id) !== cafeId)
-            }
             renderCafes(`${getCafeName(cafe)} was deleted from your list.`)
         } catch (error) {
             status.textContent = error.message
@@ -1145,10 +1174,11 @@ function makeCafeCard(cafe) {
 
 const listFilters = {
     all: () => true,
-    favorites: preference => preference.favorite,
-    recommended: preference => preference.recommend === true,
-    'not-recommended': preference => preference.recommend === false,
-    unrated: preference => !hasRatings(preference)
+    saved: cafe => isInPersonalCollection(String(cafe._id)),
+    favorite: cafe => {
+        const cafeId = String(cafe._id)
+        return isInPersonalCollection(cafeId) && preferences.get(cafeId)?.favorite === true
+    }
 }
 
 function compareByName(a, b) {
@@ -1156,10 +1186,9 @@ function compareByName(a, b) {
 }
 
 function renderCafes(announcement = '') {
-    const inListMode = currentView === 'list' && !currentQuery
-    listToolbar.hidden = !inListMode
+    listToolbar.hidden = false
     showListButton.hidden = false
-    showListButton.textContent = currentQuery || currentView === 'directory'
+    showListButton.textContent = currentFilter !== 'saved' || currentQuery
         ? '← Back to My List'
         : 'Browse All Cafés'
 
@@ -1167,12 +1196,10 @@ function renderCafes(announcement = '') {
         ? currentCafes.filter(cafe => String(cafe._id) === currentSelectedCafeId)
         : currentCafes
 
-    const totalInList = visibleCafes.length
-    if (inListMode) {
-        const matches = listFilters[currentFilter] ?? listFilters.all
-        visibleCafes = visibleCafes
-            .filter(cafe => matches({ ...emptyPreference(String(cafe._id)), ...preferences.get(String(cafe._id)) }))
-            .sort(compareByName)
+    const matches = listFilters[currentFilter] ?? listFilters.all
+    visibleCafes = visibleCafes.filter(matches)
+    if (currentFilter !== 'all') {
+        visibleCafes.sort(compareByName)
     }
 
     const prefix = announcement ? `${announcement} ` : ''
@@ -1180,44 +1207,49 @@ function renderCafes(announcement = '') {
         cafeList.replaceChildren()
         loadMoreButton.hidden = true
         updateMap([])
-        listStatus.textContent = prefix + (currentQuery
-            ? 'No cafes match that search. Try another name.'
-            : inListMode
-                ? totalInList === 0
-                    ? 'Your list is empty. Browse the cafe directory or search for a cafe to add it.'
-                    : 'No cafes in your list match this filter.'
-                : 'No cafes are available right now.')
+        const noResultsMessage = currentQuery
+            ? currentFilter === 'saved'
+                ? 'No saved cafés match that search.'
+                : currentFilter === 'favorite'
+                    ? 'No favourite cafés match that search.'
+                    : 'No cafés match that search. Try another name.'
+            : currentFilter === 'saved'
+                ? 'You have no saved cafés yet. Add cafés to your list to see them here.'
+                : currentFilter === 'favorite'
+                    ? 'No cafés are marked as favourites yet. Use a heart to add one.'
+                    : 'No cafés are available right now.'
+        listStatus.textContent = prefix + noResultsMessage
         return
     }
 
     const matchingCount = visibleCafes.length
     const pageCafes = visibleCafes.slice(0, visibleCafeCount)
     loadMoreButton.hidden = pageCafes.length >= matchingCount
-    const noun = matchingCount === 1 ? 'cafe' : 'cafes'
-    listStatus.textContent = prefix + (inListMode
-        ? `Showing ${pageCafes.length} of ${matchingCount} ${noun} in your list.`
-        : `Showing ${pageCafes.length} of ${matchingCount} ${noun} found.${currentQuery ? ' Add any of them to your list.' : ''}`)
+    const resultLabel = currentFilter === 'saved'
+        ? 'saved cafés'
+        : currentFilter === 'favorite' ? 'favourite cafés' : 'cafés found'
+    listStatus.textContent = prefix
+        + `Showing ${pageCafes.length} of ${matchingCount} ${resultLabel}.${currentQuery && currentFilter === 'all' ? ' Add any of them to your list.' : ''}`
     loadMoreButton.setAttribute('aria-label', 'Load the next 9 cafes')
     cafeList.replaceChildren(...pageCafes.map(makeCafeCard))
     updateMap(pageCafes)
 }
 
-async function loadCafes(terms = '', selectedCafeId = '', { showSuggestions = false, view = currentView } = {}) {
+async function loadCafes(terms = '', selectedCafeId = '', { showSuggestions = false } = {}) {
     const requestId = ++cafeLoadRequestId
     const query = terms.trim()
-    const targetView = query ? 'directory' : view
     listStatus.textContent = query
-        ? 'Searching cafes…'
-        : targetView === 'list' ? 'Loading your list…' : 'Loading cafes…'
+        ? 'Searching cafés…'
+        : 'Loading cafés…'
     cafeList.replaceChildren()
     loadMoreButton.hidden = true
     if (!query || !showSuggestions) hideSearchSuggestions()
     const url = query
         ? `/api/cafes/search?terms=${encodeURIComponent(query)}`
-        : targetView === 'list' ? '/api/collection' : '/api/cafes'
+        : '/api/cafes'
 
     try {
-        const needSavedCafes = targetView !== 'list' && !savedCafesLoaded
+        const needSavedCafes = !savedCafesLoaded
         const [cafes, savedPreferences, listedCafes] = await Promise.all([
             requestJson(url),
             requestJson('/api/preferences'),
@@ -1234,14 +1266,12 @@ async function loadCafes(terms = '', selectedCafeId = '', { showSuggestions = fa
             preferences.set(preference.cafeId, preference)
         }
 
-        const savedList = targetView === 'list' ? cafes : listedCafes
-        if (savedList) {
+        if (listedCafes) {
             savedCafes.clear()
-            for (const cafe of savedList) savedCafes.set(String(cafe._id), cafe)
+            for (const cafe of listedCafes) savedCafes.set(String(cafe._id), cafe)
             savedCafesLoaded = true
         }
 
-        currentView = targetView
         currentCafes = cafes
         currentQuery = query
         currentSelectedCafeId = selectedCafeId
@@ -1300,8 +1330,10 @@ document.addEventListener('click', event => {
 showListButton.addEventListener('click', () => {
     clearTimeout(searchTimeout)
     searchInput.value = ''
-    const view = currentQuery || currentView === 'directory' ? 'list' : 'directory'
-    loadCafes('', '', { view })
+    const nextFilter = currentFilter === 'saved' && !currentQuery ? 'all' : 'saved'
+    setFilter(nextFilter)
+    currentSelectedCafeId = ''
+    loadCafes()
 })
 
 function setFilter(filter) {
@@ -1316,6 +1348,7 @@ for (const button of filterButtons) {
         if (button.dataset.filter === currentFilter) return
         setFilter(button.dataset.filter)
         visibleCafeCount = PAGE_SIZE
+        currentSelectedCafeId = ''
         renderCafes()
     })
 }
@@ -1330,4 +1363,4 @@ backToTopButton.addEventListener('click', () => {
 })
 
 initializeMap()
-loadCafes('', '', { view: 'directory' })
+loadCafes()

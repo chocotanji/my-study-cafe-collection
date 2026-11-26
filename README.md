@@ -77,7 +77,7 @@ Create `.env` locally with the settings above first. Leave `NETLIFY` unset. The 
 ## Personal cafe list (CRUD)
 
 1. **Create** – search the cafe directory and select **Add to my list**. This creates an empty cafe profile for the current browser and opens its review form.
-2. **Read** – the page opens with the fixed cafe directory; nine cafes are shown at a time, and **Loading More...** reveals the next group. Search matches the whole directory. **Back to My List** opens the current browser's saved profiles, shown in name order with filters (All, Favourites, Recommended, Not recommended, Not rated yet). Each saved profile shows its ratings, note, favourite and recommendation badges, and a study score.
+2. **Read** – the page opens with the fixed cafe directory; nine cafes are shown at a time, and **Loading More...** reveals the next group. Search matches the whole directory and works with the **All Cafés**, **Saved**, and **Favourite** filters. Each saved profile shows its ratings, note, favourite and recommendation badges, and a study score.
 3. **Update** – select **Edit** on a profile to change any rating, the note, the favourite flag, or the recommendation, then **Save**.
 Every cafe card also has a **View more** panel with the cafe's type, rating, price range, phone number, website, address, plus code, and opening hours for each day of the week (today, in Toronto time, is highlighted). These come from the fixed cafe record's `typeOfStore`, `rating`, `priceRange`, `phoneNo`, `webLink`, `address`, `plusCodes`, `hoursByDay`, and `operatingHoursRaw` fields.
 
@@ -93,7 +93,7 @@ Every cafe card also has a **View more** panel with the cafe's type, rating, pri
 | `recommend` | `true` (recommend), `false` (don't recommend), or `null` (undecided) |
 | `personalNotes` | Text, up to 1,000 characters |
 
-The study score shown on each profile is the average of the ratings that have been filled in, with the noise level inverted so quieter cafes score higher. Ratings saved by earlier versions as `foodQuality` are read as `foodAndDrinkQuality` and replaced the next time the profile is saved.
+Ratings are edited with whole-number 1–5 sliders and can be marked **Not rated**. The interface uses 1 as worst and 5 as best for every slider; the noise slider reverses the existing stored `noiseLevel` value so saved data remains compatible. The study score shown on each profile is the average of the ratings that have been filled in, with quieter cafes scoring higher. Ratings saved by earlier versions as `foodQuality` are read as `foodAndDrinkQuality` and replaced the next time the profile is saved.
 
 ## Data behavior
 

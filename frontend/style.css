@@ -1114,14 +1114,73 @@ h1 em {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.preference-form .rating-field {
-  font-size: 0.76rem;
+.preference-form .rating-scale-hint {
+  margin: 0 0 -8px;
+  color: #817061;
+  font-family: 'Inria Sans', sans-serif;
+  font-size: 0.82rem;
 }
 
-.preference-form .rating-field select {
-  min-height: 40px;
-  padding: 8px;
+.preference-form .rating-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 12px;
   font-size: 0.82rem;
+}
+
+.rating-field > label:first-child {
+  margin: 0;
+  color: #493320;
+  font-size: inherit;
+}
+
+.rating-value {
+  color: #493320;
+  font-family: 'Inria Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.preference-form .rating-field input[type='range'] {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  accent-color: #747d42;
+  cursor: pointer;
+}
+
+.preference-form .rating-field input[type='range']:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.rating-unrated {
+  grid-column: 1 / -1;
+  display: flex !important;
+  width: max-content;
+  align-items: center;
+  gap: 7px !important;
+  margin: 0;
+  color: #817061 !important;
+  font-family: 'Inria Sans', sans-serif;
+  font-size: 0.76rem !important;
+  font-weight: 400 !important;
+}
+
+.rating-unrated input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  accent-color: #747d42;
 }
 
 .recommend-group {
@@ -1501,11 +1560,11 @@ main {
   padding: 80px clamp(24px, 7vw, 100px);
   background-color: #655341;
   background-image:
-    linear-gradient(rgb(101 83 65 / 62%), rgb(101 83 65 / 62%)),
+    linear-gradient(rgb(101 83 65 / 90%), rgb(101 83 65 / 90%)),
     url('/assets/map-wood-grain.svg');
   background-position: center;
   background-repeat: no-repeat;
-  background-size: 100% 100%;
+  background-size: cover;
   color: white;
 }
 
@@ -1554,35 +1613,43 @@ main {
 }
 
 .cafe-map .leaflet-bar a {
+  position: absolute;
+  left: 0;
+  display: grid;
   width: 54px;
   height: 54px;
-  border: 3px solid #493320;
+  flex-shrink: 0;
+  place-items: center;
+  border: 0;
   border-radius: 15px;
-  line-height: 48px;
+  aspect-ratio: 1 / 1;
+  background: white url('/assets/map-zoom-control.svg') center / 100% 100% no-repeat;
+  line-height: 1;
   font-family: 'Inria Sans', sans-serif;
   font-size: 1.8rem;
 }
 
 .cafe-map .leaflet-control-zoom {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  position: relative;
+  width: 54px;
+  height: 118px;
+  flex: none;
   margin: 40px 0 0 40px;
   border: 0;
+  background: transparent;
   box-shadow: none;
 }
 
-.cafe-map .leaflet-control-zoom a {
-  border-bottom: 3px solid #493320;
+.cafe-map .leaflet-control-zoom-in {
+  top: 0;
 }
 
-.cafe-map .leaflet-control-zoom-in,
 .cafe-map .leaflet-control-zoom-out {
-  border-radius: 15px;
+  top: 64px;
 }
 
 .cafe-map .leaflet-bar a:hover {
-  background: #f5f3f1;
+  filter: brightness(0.96);
   color: #493320;
 }
 
@@ -1772,6 +1839,7 @@ main {
 }
 
 .list-toolbar {
+  margin-top: 25px;
   margin-bottom: 18px;
 }
 
