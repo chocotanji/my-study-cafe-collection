@@ -3,9 +3,9 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#f5f2eb">
+    <meta name="theme-color" content="#655341">
     <meta name="description" content="Search cafes and build your own private list of study spots, with ratings, notes, favourites and recommendations.">
-    <title>Study Cafe Collection</title>
+    <title>BeanThere | Study Cafe Collection</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="/style.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
@@ -13,43 +13,37 @@
   </head>
   <body>
     <header class="site-header">
-      <a class="brand" href="/" aria-label="Study Cafe Collection home">
-        <span class="brand-mark" aria-hidden="true">SC</span>
-        <span>Study Cafe Collection</span>
+      <a class="brand" href="/" aria-label="BeanThere home">
+        <img class="brand-mark" src="/assets/figma-logo.svg" alt="">
+        <span>BeanThere</span>
       </a>
-      <a class="header-link" href="#map-section">Explore the map <span aria-hidden="true">↓</span></a>
     </header>
 
     <main>
       <section class="hero" aria-labelledby="page-title">
         <div class="hero-copy">
-          <p class="eyebrow">A little more focus, one cafe at a time</p>
-          <h1 id="page-title">Find your next<br><em>favorite study spot.</em></h1>
-          <p class="hero-description">Search for cafes, add them to your own list, and rate Wi-Fi, outlets, noise, space and more. Keep notes, pick favourites, and decide which ones you’d recommend.</p>
+          <h1 id="page-title">Finding your next favourite study spot.</h1>
+          <p class="hero-description">Search up your favourite cafés, save their locations, and curate a list tailored to your own preferences.</p>
+          <a class="explore-button" href="#collection">Explore Now <img src="/assets/arrow.svg" alt=""></a>
         </div>
         <div class="hero-art" aria-hidden="true">
-          <span class="art-sun"></span>
-          <span class="art-cup"><span></span></span>
-          <span class="art-steam art-steam-one"></span>
-          <span class="art-steam art-steam-two"></span>
-          <span class="art-book"></span>
+          <img class="hero-illustration" src="/assets/coffee-book.svg" alt="">
+          <img class="hero-latte-art" src="/assets/coffee-leaf.svg" alt="">
         </div>
       </section>
 
       <section id="map-section" class="map-section" aria-labelledby="map-title" tabindex="-1">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Find your way</p>
-            <h2 id="map-title">Explore cafes on the map</h2>
+            <h2 id="map-title">Explore cafés on the map</h2>
           </div>
-          <p class="map-intro">Every cafe in your list gets a pin that stays here until you delete its profile. Select a pin to jump to the cafe.</p>
+          <p id="map-status" class="map-intro" role="status" aria-live="polite">Add cafés to your list to pin them on the map.</p>
         </div>
-        <p id="map-status" class="status-message" role="status" aria-live="polite">Loading map…</p>
         <div id="cafe-map" class="cafe-map" aria-label="Map of cafes" role="region"></div>
         <ul class="map-legend" aria-label="Map legend">
-          <li><span class="legend-pin" aria-hidden="true"></span>In your list</li>
-          <li><span class="legend-pin is-favorite" aria-hidden="true"></span>Favourite</li>
-          <li><span class="legend-pin is-result" aria-hidden="true"></span>Search result (not saved)</li>
+          <li><img class="legend-pin" src="/assets/map-pin.svg" alt="">In Your List</li>
+          <li><img class="legend-heart" src="/assets/heart-filled.svg" alt="">Your Favourites</li>
+          <li class="legend-result"><span class="legend-pin is-result" aria-hidden="true"></span>Search result (not saved)</li>
         </ul>
         <p class="map-attribution">Map data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. Cafe addresses are looked up with OpenStreetMap Nominatim once when you add a cafe to your list, or when you select “Show on map”.</p>
       </section>
@@ -57,18 +51,20 @@
       <section id="collection" class="collection-section" aria-labelledby="collection-title">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">My cafe list</p>
-            <h2 id="collection-title">Places to get in the zone</h2>
+            <h2 id="collection-title">Make Your List Here</h2>
           </div>
-          <div class="search-container">
-            <form id="search-form" class="search-form" role="search">
-              <label class="sr-only" for="search-terms">Search cafes</label>
-              <input id="search-terms" name="terms" type="search" placeholder="Search cafes to add" role="combobox" aria-autocomplete="list" aria-controls="search-suggestions" aria-expanded="false">
-              <button type="submit" class="search-button" aria-label="Search">
-                <span aria-hidden="true">⌕</span>
-              </button>
-            </form>
-            <div id="search-suggestions" class="search-suggestions" role="listbox" aria-label="Cafe suggestions" hidden></div>
+          <div class="search-actions">
+            <div class="search-container">
+              <form id="search-form" class="search-form" role="search">
+                <label class="sr-only" for="search-terms">Search cafes</label>
+                <input id="search-terms" name="terms" type="search" placeholder="Search cafés to add..." role="combobox" aria-autocomplete="list" aria-controls="search-suggestions" aria-expanded="false">
+                <button type="submit" class="search-button" aria-label="Search">
+                  <span class="search-icon" aria-hidden="true"></span>
+                </button>
+              </form>
+              <div id="search-suggestions" class="search-suggestions" role="listbox" aria-label="Cafe suggestions" hidden></div>
+            </div>
+            <button id="show-list" class="secondary-button" type="button" hidden>← Back to My List</button>
           </div>
         </div>
         <div class="list-toolbar">
@@ -79,7 +75,6 @@
             <button type="button" class="filter-button" data-filter="not-recommended" aria-pressed="false">Not recommended</button>
             <button type="button" class="filter-button" data-filter="unrated" aria-pressed="false">Not rated yet</button>
           </div>
-          <button id="show-list" class="secondary-button" type="button" hidden>← Back to my list</button>
         </div>
         <p id="list-status" class="status-message" role="status" aria-live="polite">Loading your list…</p>
         <div id="cafe-list" class="cafe-grid" aria-live="polite"></div>

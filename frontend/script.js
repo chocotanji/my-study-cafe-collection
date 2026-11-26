@@ -837,7 +837,7 @@ function makeCafeDetails(cafe) {
         if (details.open) openDetails.add(cafeId)
         else openDetails.delete(cafeId)
     })
-    const summary = makeElement('summary', null, 'View more')
+    const summary = makeElement('summary', null, 'View More Details')
     summary.setAttribute('aria-label', `View more about ${getCafeName(cafe)}`)
     details.append(summary)
     const body = makeElement('div', 'cafe-details-body')
@@ -917,6 +917,7 @@ function replaceCard(cafe, { focus } = {}) {
 function updateFavoriteButton(button, cafe, isFavorite) {
     const name = getCafeName(cafe)
     button.classList.toggle('is-favorite', isFavorite)
+    button.querySelector('img').src = isFavorite ? '/assets/heart-filled.svg' : '/assets/heart-outline.svg'
     button.setAttribute('aria-pressed', String(isFavorite))
     button.setAttribute('aria-label', `Favourite ${name}`)
     button.title = isFavorite ? 'Remove from favourites' : 'Add to favourites'
@@ -927,7 +928,10 @@ function makeFavoriteButton(cafe) {
     const cafeId = String(cafe._id)
     const button = makeElement('button', 'favorite-toggle')
     button.type = 'button'
-    button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 20.5s-7.5-4.6-9.3-9.4C1.4 7.6 3.6 4 7.2 4c2 0 3.6 1.1 4.8 2.8C13.2 5.1 14.8 4 16.8 4c3.6 0 5.8 3.6 4.5 7.1-1.8 4.8-9.3 9.4-9.3 9.4z"/></svg>'
+    const icon = document.createElement('img')
+    icon.src = '/assets/heart-outline.svg'
+    icon.alt = ''
+    button.append(icon)
     updateFavoriteButton(button, cafe, Boolean(preferences.get(cafeId)?.favorite))
 
     button.addEventListener('click', async () => {
@@ -983,8 +987,9 @@ function makeCafeCard(cafe) {
     if (inList) {
         topLine.append(makeFavoriteButton(cafe), makeBadges(preference))
     } else {
-        const marker = makeElement('span', 'card-marker', '✳')
-        marker.setAttribute('aria-hidden', 'true')
+        const marker = makeElement('img', 'card-marker')
+        marker.src = '/assets/heart-outline.svg'
+        marker.alt = ''
         topLine.append(marker)
     }
 
@@ -997,8 +1002,13 @@ function makeCafeCard(cafe) {
         card.append(makeElement('p', 'cafe-address', address))
     }
 
+    const cardActions = makeElement('div', 'card-actions')
     if (address || getCafeCoordinates(cafe)) {
-        const mapButton = makeElement('button', 'map-link', 'Show on map')
+        const mapButton = makeElement('button', 'map-link card-map-button')
+        const arrow = makeElement('img', 'map-button-arrow')
+        arrow.src = '/assets/arrow.svg'
+        arrow.alt = ''
+        mapButton.append(arrow, document.createTextNode('Show on Map'))
         mapButton.type = 'button'
         mapButton.addEventListener('click', async () => {
             mapButton.disabled = true
@@ -1011,14 +1021,14 @@ function makeCafeCard(cafe) {
                 mapButton.disabled = false
             }
         })
-        card.append(mapButton)
+        cardActions.append(mapButton)
     }
 
     if (typeof cafe.description === 'string' && cafe.description) {
         card.append(makeElement('p', 'cafe-notes', cafe.description))
     }
 
-    card.append(makeCafeDetails(cafe))
+    card.append(cardActions, makeCafeDetails(cafe))
 
     const status = makeStatus()
     const message = cardMessages.get(cafeId)
@@ -1028,7 +1038,7 @@ function makeCafeCard(cafe) {
     }
 
     if (!inList) {
-        const addButton = makeElement('button', 'primary-button add-button', '+ Add to my list')
+        const addButton = makeElement('button', 'primary-button add-button', 'Add to List')
         addButton.type = 'button'
         addButton.addEventListener('click', async () => {
             addButton.disabled = true
@@ -1048,7 +1058,8 @@ function makeCafeCard(cafe) {
                 addButton.disabled = false
             }
         })
-        card.append(addButton, status)
+        cardActions.append(addButton)
+        card.append(status)
         return card
     }
 
