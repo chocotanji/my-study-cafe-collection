@@ -41,8 +41,16 @@
         </div>
         <div id="cafe-map" class="cafe-map" aria-label="Map of cafes" role="region"></div>
         <ul class="map-legend" aria-label="Map legend">
-          <li><img class="legend-pin" src="/assets/map-pin.svg" alt="">In Your List</li>
-          <li><img class="legend-heart" src="/assets/heart-filled.svg" alt="">Your Favourites</li>
+          <li>
+            <button type="button" class="map-legend-button" data-map-filter="saved" aria-pressed="true">
+              <img class="legend-pin" src="/assets/map-pin.svg" alt="">In Your List
+            </button>
+          </li>
+          <li>
+            <button type="button" class="map-legend-button" data-map-filter="favorite" aria-pressed="false">
+              <img class="legend-heart" src="/assets/heart-filled.svg" alt="">Your Favourite
+            </button>
+          </li>
           <li class="legend-result"><span class="legend-pin is-result" aria-hidden="true"></span>Search result (not saved)</li>
         </ul>
       </section>
@@ -53,18 +61,15 @@
             <h2 id="collection-title">Make Your List Here</h2>
           </div>
         </div>
-        <div class="search-actions">
-          <div class="search-container">
-            <form id="search-form" class="search-form" role="search">
-              <label class="sr-only" for="search-terms">Search cafes</label>
-              <input id="search-terms" name="terms" type="search" placeholder="Search cafés to add..." role="combobox" aria-autocomplete="list" aria-controls="search-suggestions" aria-expanded="false">
-              <button type="submit" class="search-button" aria-label="Search">
-                <span class="search-icon" aria-hidden="true"></span>
-              </button>
-            </form>
-            <div id="search-suggestions" class="search-suggestions" role="listbox" aria-label="Cafe suggestions" hidden></div>
-          </div>
-          <button id="show-list" class="secondary-button" type="button">← Back to My List</button>
+        <div class="search-container">
+          <form id="search-form" class="search-form" role="search">
+            <label class="sr-only" for="search-terms">Search cafes</label>
+            <input id="search-terms" name="terms" type="search" placeholder="Search cafés to add..." role="combobox" aria-autocomplete="list" aria-controls="search-suggestions" aria-expanded="false">
+            <button type="submit" class="search-button" aria-label="Search">
+              <span class="search-icon" aria-hidden="true"></span>
+            </button>
+          </form>
+          <div id="search-suggestions" class="search-suggestions" role="listbox" aria-label="Cafe suggestions" hidden></div>
         </div>
         <div id="list-toolbar" class="list-toolbar">
           <div id="list-tools" class="list-tools filter-buttons" role="group" aria-label="Filter cafés">
