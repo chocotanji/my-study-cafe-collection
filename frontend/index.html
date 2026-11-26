@@ -45,7 +45,6 @@
           <li><img class="legend-heart" src="/assets/heart-filled.svg" alt="">Your Favourites</li>
           <li class="legend-result"><span class="legend-pin is-result" aria-hidden="true"></span>Search result (not saved)</li>
         </ul>
-        <p class="map-attribution">Map data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. Cafe addresses are looked up with OpenStreetMap Nominatim once when you add a cafe to your list, or when you select “Show on map”.</p>
       </section>
 
       <section id="collection" class="collection-section" aria-labelledby="collection-title">
@@ -53,21 +52,21 @@
           <div>
             <h2 id="collection-title">Make Your List Here</h2>
           </div>
-          <div class="search-actions">
-            <div class="search-container">
-              <form id="search-form" class="search-form" role="search">
-                <label class="sr-only" for="search-terms">Search cafes</label>
-                <input id="search-terms" name="terms" type="search" placeholder="Search cafés to add..." role="combobox" aria-autocomplete="list" aria-controls="search-suggestions" aria-expanded="false">
-                <button type="submit" class="search-button" aria-label="Search">
-                  <span class="search-icon" aria-hidden="true"></span>
-                </button>
-              </form>
-              <div id="search-suggestions" class="search-suggestions" role="listbox" aria-label="Cafe suggestions" hidden></div>
-            </div>
-            <button id="show-list" class="secondary-button" type="button" hidden>← Back to My List</button>
-          </div>
         </div>
-        <div class="list-toolbar">
+        <div class="search-actions">
+          <div class="search-container">
+            <form id="search-form" class="search-form" role="search">
+              <label class="sr-only" for="search-terms">Search cafes</label>
+              <input id="search-terms" name="terms" type="search" placeholder="Search cafés to add..." role="combobox" aria-autocomplete="list" aria-controls="search-suggestions" aria-expanded="false">
+              <button type="submit" class="search-button" aria-label="Search">
+                <span class="search-icon" aria-hidden="true"></span>
+              </button>
+            </form>
+            <div id="search-suggestions" class="search-suggestions" role="listbox" aria-label="Cafe suggestions" hidden></div>
+          </div>
+          <button id="show-list" class="secondary-button" type="button">← Back to My List</button>
+        </div>
+        <div id="list-toolbar" class="list-toolbar">
           <div id="list-tools" class="list-tools filter-buttons" role="group" aria-label="Filter your list">
             <button type="button" class="filter-button" data-filter="all" aria-pressed="true">All</button>
             <button type="button" class="filter-button" data-filter="favorites" aria-pressed="false">Favourites</button>
@@ -76,15 +75,16 @@
             <button type="button" class="filter-button" data-filter="unrated" aria-pressed="false">Not rated yet</button>
           </div>
         </div>
-        <p id="list-status" class="status-message" role="status" aria-live="polite">Loading your list…</p>
+        <p id="list-status" class="status-message" role="status" aria-live="polite">Loading cafés…</p>
         <div id="cafe-list" class="cafe-grid" aria-live="polite"></div>
-        <p class="privacy-note">Your list, ratings, and notes are stored for this browser only. They aren’t shared or synced across devices. The study score averages your ratings, with quieter cafes scoring higher.</p>
+        <button id="load-more" class="load-more" type="button" aria-label="Load the next 9 cafés" hidden>Loading More...</button>
       </section>
     </main>
 
     <footer class="site-footer">
-      <span>Made for good coffee and better focus.</span>
-      <a href="#page-title">Back to top ↑</a>
+      <button id="back-to-top" class="back-to-top" type="button" aria-label="Back to top">
+        <img src="/assets/back-to-top.svg" alt="">
+      </button>
     </footer>
   </body>
 </html>

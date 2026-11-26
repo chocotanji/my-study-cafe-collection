@@ -17,8 +17,8 @@ backend/
   routes/preferences.js          Read and update per-browser cafe preferences
   validation/preferences.js      Preference fields, defaults, and validation
 frontend/
-  index.html                     Personal cafe list, filters, and search
-  script.js                      API requests, map, cafe profiles, and preference forms
+  index.html                     Cafe directory, personal list, filters, and search
+  script.js                      API requests, pagination, map, profiles, and preferences
   style.css                      Responsive page styles
   assets/                        Local illustrations and icons used by the page
 .vscode/mcp.json                 Workspace-scoped Figma MCP configuration for VS Code
@@ -77,7 +77,7 @@ Create `.env` locally with the settings above first. Leave `NETLIFY` unset. The 
 ## Personal cafe list (CRUD)
 
 1. **Create** – search the cafe directory and select **Add to my list**. This creates an empty cafe profile for the current browser and opens its review form.
-2. **Read** – with the search box empty, the page shows the browser's list. Each profile shows its ratings, note, favourite and recommendation badges, and a study score. The list is shown in name order. A row of filter buttons above it (All, Favourites, Recommended, Not recommended, Not rated yet) narrows it down; the selected button is highlighted.
+2. **Read** – the page opens with the fixed cafe directory; nine cafes are shown at a time, and **Loading More...** reveals the next group. Search matches the whole directory. **Back to My List** opens the current browser's saved profiles, shown in name order with filters (All, Favourites, Recommended, Not recommended, Not rated yet). Each saved profile shows its ratings, note, favourite and recommendation badges, and a study score.
 3. **Update** – select **Edit** on a profile to change any rating, the note, the favourite flag, or the recommendation, then **Save**.
 Every cafe card also has a **View more** panel with the cafe's type, rating, price range, phone number, website, address, plus code, and opening hours for each day of the week (today, in Toronto time, is highlighted). These come from the fixed cafe record's `typeOfStore`, `rating`, `priceRange`, `phoneNo`, `webLink`, `address`, `plusCodes`, `hoursByDay`, and `operatingHoursRaw` fields.
 
@@ -98,7 +98,7 @@ The study score shown on each profile is the average of the ratings that have be
 ## Data behavior
 
 - Fixed cafe documents are read from `cafe_list`.`cafe list`. The app never inserts, updates, or deletes fixed cafe records; deleting a profile only affects the browser's own data in `user_input`.
-- Every cafe in the browser's list has a pin on the map. Pins stay on the map through searches and filters and are removed only when the cafe profile is deleted. Favourites use an orange pin; search results that aren't in the list can be pinned temporarily with **Show on map** and use a dashed pin.
+- Every cafe in the browser's list has a pin on the map. Pins stay on the map through searches and filters and are removed only when the cafe profile is deleted. Favourites use the heart pin; search results that aren't in the list can be pinned temporarily with **Show on map** and use a dashed pin. Favouriting a cafe from the directory adds it to the browser's list so the favourite is saved.
 - Cafe records have addresses but no coordinates, so a pin's position is looked up through OpenStreetMap Nominatim when the cafe is added (or when **Show on map** is selected). The position is then saved on the cafe profile as `mapLocation`, so later visits show the pin without another lookup, and deleting the profile erases it. Lookups run one per second, as Nominatim's usage policy requires, and Toronto is added as search context when the address does not already mention it. Records that do include latitude/longitude or GeoJSON coordinates use them directly.
 - The map starts centered on Toronto and uses Leaflet and OpenStreetMap tiles.
 - A random token identifies an anonymous browser. No account or personal information is required. The page gets the token from `/api/session`, keeps it in `localStorage`, and sends it with every request in an `X-Study-Session` header, which keeps the list working even when the site is embedded in another page and the browser blocks its cookie. An HttpOnly cookie carrying the same token (valid for one year) remains as a fallback for direct API clients and for browsers that visited before the header existed; those browsers keep their existing list.
@@ -107,7 +107,7 @@ The study score shown on each profile is the average of the ratings that have be
 
 ## API
 
-All responses are JSON. The list and search results return up to 100 fixed cafe documents.
+All responses are JSON. The list and search results return up to 200 fixed cafe documents, enough for the current 184-cafe directory.
 
 | Method | Path | Behavior |
 | --- | --- | --- |

@@ -1359,7 +1359,7 @@ body {
   border: 0;
   background: #655341;
   color: white;
-  box-shadow: 0 4px 0 rgb(0 0 0 / 20%);
+  box-shadow: none;
 }
 
 .brand {
@@ -1394,7 +1394,8 @@ main {
   min-height: 530px;
   align-items: flex-start;
   padding: 80px clamp(24px, 7vw, 100px);
-  overflow: visible;
+  overflow-x: clip;
+  overflow-y: visible;
   border: 0;
   background: linear-gradient(242deg, #9cadb8 4%, #d5d0ca 32%, #f5f3f1 62%);
 }
@@ -1500,8 +1501,11 @@ main {
   padding: 80px clamp(24px, 7vw, 100px);
   background-color: #655341;
   background-image:
-    repeating-linear-gradient(93deg, transparent 0 23px, rgb(35 23 14 / 13%) 24px, transparent 26px 37px),
-    repeating-linear-gradient(178deg, transparent 0 52px, rgb(255 255 255 / 3%) 53px, transparent 55px 79px);
+    linear-gradient(rgb(101 83 65 / 62%), rgb(101 83 65 / 62%)),
+    url('/assets/map-wood-grain.svg');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
   color: white;
 }
 
@@ -1550,24 +1554,31 @@ main {
 }
 
 .cafe-map .leaflet-bar a {
-  width: 38px;
-  height: 38px;
-  line-height: 34px;
+  width: 54px;
+  height: 54px;
+  border: 3px solid #493320;
+  border-radius: 15px;
+  line-height: 48px;
   font-family: 'Inria Sans', sans-serif;
-  font-size: 1.4rem;
+  font-size: 1.8rem;
 }
 
 .cafe-map .leaflet-control-zoom {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 40px 0 0 40px;
   border: 0;
   box-shadow: none;
 }
 
-.cafe-map .leaflet-control-zoom-in {
-  border-radius: 12px 12px 0 0;
+.cafe-map .leaflet-control-zoom a {
+  border-bottom: 3px solid #493320;
 }
 
+.cafe-map .leaflet-control-zoom-in,
 .cafe-map .leaflet-control-zoom-out {
-  border-radius: 0 0 12px 12px;
+  border-radius: 15px;
 }
 
 .cafe-map .leaflet-bar a:hover {
@@ -1651,15 +1662,6 @@ main {
   display: none;
 }
 
-.map-attribution {
-  margin-top: 12px;
-  color: rgb(255 255 255 / 80%);
-}
-
-.map-attribution a {
-  color: white;
-}
-
 .collection-section {
   width: 100%;
   padding: 80px clamp(24px, 7vw, 100px);
@@ -1668,7 +1670,7 @@ main {
 
 .collection-section > .section-heading {
   align-items: flex-start;
-  margin-bottom: 25px;
+  margin-bottom: 0;
 }
 
 .collection-section .section-heading h2 {
@@ -1684,6 +1686,7 @@ main {
   display: flex;
   align-items: center;
   gap: 40px;
+  margin-top: 22px;
 }
 
 .search-container {
@@ -1877,8 +1880,7 @@ main {
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  margin-top: auto;
-  padding-top: 16px;
+  margin-top: 16px;
 }
 
 .card-map-button,
@@ -1996,15 +1998,59 @@ main {
 
 .site-footer {
   width: 100%;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 28px clamp(24px, 7vw, 100px);
   background: #f5f3f1;
   color: #817061;
   font-family: 'Inria Sans', sans-serif;
 }
 
-.site-footer a {
-  color: #493320;
+.load-more {
+  display: block;
+  width: min(390px, 100%);
+  min-height: 56px;
+  margin: 48px auto 0;
+  padding: 0 24px;
+  border: 2px solid #b24e50;
+  border-radius: 40px;
+  background: #b24e50;
+  box-shadow: 4px 4px 0 rgb(0 0 0 / 18%);
+  color: white;
+  cursor: pointer;
+  font-family: 'Inria Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.load-more:hover {
+  background: #9f4143;
+}
+
+.load-more:focus-visible,
+.back-to-top:focus-visible {
+  outline: 3px solid #747d42;
+  outline-offset: 4px;
+}
+
+.load-more[hidden] {
+  display: none;
+}
+
+.back-to-top {
+  display: inline-flex;
+  width: 73px;
+  height: 73px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.back-to-top img {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 @media (max-width: 900px) {
@@ -2129,5 +2175,10 @@ main {
 
   .site-footer {
     padding: 24px 22px;
+  }
+
+  .back-to-top {
+    width: 56px;
+    height: 56px;
   }
 }

@@ -6,7 +6,11 @@ const searchInput = document.querySelector('#search-terms')
 const searchContainer = document.querySelector('.search-container')
 const searchSuggestions = document.querySelector('#search-suggestions')
 const listTools = document.querySelector('#list-tools')
+const listToolbar = document.querySelector('#list-toolbar')
 const filterButtons = [...document.querySelectorAll('#list-tools [data-filter]')]
+const loadMoreButton = document.querySelector('#load-more')
+const backToTopButton = document.querySelector('#back-to-top')
+const PAGE_SIZE = 9
 let currentFilter = 'all'
 const showListButton = document.querySelector('#show-list')
 const preferences = new Map()
@@ -30,6 +34,8 @@ let searchTimeout
 let cafeLoadRequestId = 0
 let currentCafes = []
 let currentQuery = ''
+let currentView = 'directory'
+let visibleCafeCount = PAGE_SIZE
 let currentSelectedCafeId = ''
 const openEditors = new Set()
 const cardMessages = new Map()
@@ -260,8 +266,13 @@ async function openCafeCard(cafeId) {
         clearTimeout(searchTimeout)
         searchInput.value = ''
         setFilter('all')
-        await loadCafes()
+        await loadCafes('', '', { view: 'list' })
         card = document.getElementById(`cafe-${cafeId}`)
+        while (!card && currentView === 'list' && visibleCafeCount < currentCafes.length) {
+            visibleCafeCount += PAGE_SIZE
+            renderCafes()
+            card = document.getElementById(`cafe-${cafeId}`)
+        }
     }
     if (!card) return
     card.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -919,7 +930,7 @@ function updateFavoriteButton(button, cafe, isFavorite) {
     button.classList.toggle('is-favorite', isFavorite)
     button.querySelector('img').src = isFavorite ? '/assets/heart-filled.svg' : '/assets/heart-outline.svg'
     button.setAttribute('aria-pressed', String(isFavorite))
-    button.setAttribute('aria-label', `Favourite ${name}`)
+    button.setAttribute('aria-label', isFavorite ? `Remove ${name} from favourites` : `Add ${name} to favourites`)
     button.title = isFavorite ? 'Remove from favourites' : 'Add to favourites'
 }
 
@@ -935,18 +946,27 @@ function makeFavoriteButton(cafe) {
     updateFavoriteButton(button, cafe, Boolean(preferences.get(cafeId)?.favorite))
 
     button.addEventListener('click', async () => {
-        const current = { ...emptyPreference(cafeId), ...preferences.get(cafeId) }
-        const nextFavorite = !current.favorite
+        const previous = { ...emptyPreference(cafeId), ...preferences.get(cafeId) }
+        const nextFavorite = !previous.favorite
         const body = {
-            ...Object.fromEntries(RATING_FIELDS.map(({ field }) => [field, current[field] ?? null])),
+            ...Object.fromEntries(RATING_FIELDS.map(({ field }) => [field, previous[field] ?? null])),
             favorite: nextFavorite,
-            recommend: current.recommend ?? null,
-            personalNotes: current.personalNotes ?? ''
+            recommend: previous.recommend ?? null,
+            personalNotes: previous.personalNotes ?? ''
         }
 
         button.disabled = true
         updateFavoriteButton(button, cafe, nextFavorite)
+        let addedToList = false
         try {
+            if (!isInPersonalCollection(cafeId)) {
+                await requestJson(`/api/collection/${encodeURIComponent(cafeId)}`, { method: 'POST' })
+                preferences.set(cafeId, emptyPreference(cafeId))
+                savedCafes.set(cafeId, cafe)
+                savedCafesLoaded = true
+                addedToList = true
+            }
+
             const saved = await requestJson(`/api/preferences/${encodeURIComponent(cafeId)}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -957,14 +977,25 @@ function makeFavoriteButton(cafe) {
             const message = nextFavorite
                 ? `${getCafeName(cafe)} was added to your favourites.`
                 : `${getCafeName(cafe)} was removed from your favourites.`
-            if (currentFilter === 'favorites' && !nextFavorite && !openEditors.has(cafeId)) {
+            if (addedToList) {
+                cardMessages.set(cafeId, message)
+                replaceCard(cafe)
+                return
+            }
+            if (currentView === 'list' && currentFilter === 'favorites' && !nextFavorite && !openEditors.has(cafeId)) {
                 renderCafes(message)
                 return
             }
             const status = document.getElementById(`cafe-${cafeId}`)?.querySelector('[role="status"]')
             if (status) status.textContent = message
         } catch (error) {
+            const current = { ...emptyPreference(cafeId), ...preferences.get(cafeId) }
             updateFavoriteButton(button, cafe, current.favorite)
+            if (addedToList) {
+                cardMessages.set(cafeId, error.message)
+                replaceCard(cafe)
+                return
+            }
             const status = document.getElementById(`cafe-${cafeId}`)?.querySelector('[role="status"]')
             if (status) status.textContent = error.message
         } finally {
@@ -978,20 +1009,14 @@ function makeFavoriteButton(cafe) {
 function makeCafeCard(cafe) {
     const cafeId = String(cafe._id)
     const inList = isInPersonalCollection(cafeId)
-    const preference = inList ? { ...emptyPreference(cafeId), ...preferences.get(cafeId) } : null
+    const preference = { ...emptyPreference(cafeId), ...preferences.get(cafeId) }
     const card = makeElement('article', inList ? 'cafe-card is-in-list' : 'cafe-card')
     card.id = `cafe-${cafeId}`
     card.tabIndex = -1
 
     const topLine = makeElement('div', 'card-topline')
-    if (inList) {
-        topLine.append(makeFavoriteButton(cafe), makeBadges(preference))
-    } else {
-        const marker = makeElement('img', 'card-marker')
-        marker.src = '/assets/heart-outline.svg'
-        marker.alt = ''
-        topLine.append(marker)
-    }
+    topLine.append(makeFavoriteButton(cafe))
+    if (inList) topLine.append(makeBadges(preference))
 
     const title = makeElement('h3', null, getCafeName(cafe))
     title.id = `cafe-${cafeId}-title`
@@ -1101,7 +1126,7 @@ function makeCafeCard(cafe) {
             savedCafes.delete(cafeId)
             failedLocations.delete(cafeId)
             openEditors.delete(cafeId)
-            if (!currentQuery) {
+            if (currentView === 'list' && !currentQuery) {
                 currentCafes = currentCafes.filter(item => String(item._id) !== cafeId)
             }
             renderCafes(`${getCafeName(cafe)} was deleted from your list.`)
@@ -1131,9 +1156,12 @@ function compareByName(a, b) {
 }
 
 function renderCafes(announcement = '') {
-    const inListMode = !currentQuery
-    listTools.hidden = !inListMode
-    showListButton.hidden = inListMode
+    const inListMode = currentView === 'list' && !currentQuery
+    listToolbar.hidden = !inListMode
+    showListButton.hidden = false
+    showListButton.textContent = currentQuery || currentView === 'directory'
+        ? '← Back to My List'
+        : 'Browse All Cafés'
 
     let visibleCafes = currentSelectedCafeId
         ? currentCafes.filter(cafe => String(cafe._id) === currentSelectedCafeId)
@@ -1150,37 +1178,46 @@ function renderCafes(announcement = '') {
     const prefix = announcement ? `${announcement} ` : ''
     if (visibleCafes.length === 0) {
         cafeList.replaceChildren()
+        loadMoreButton.hidden = true
         updateMap([])
         listStatus.textContent = prefix + (currentQuery
             ? 'No cafes match that search. Try another name.'
-            : totalInList === 0
-                ? 'Your list is empty. Search for a cafe above to add it.'
-                : 'No cafes in your list match this filter.')
+            : inListMode
+                ? totalInList === 0
+                    ? 'Your list is empty. Browse the cafe directory or search for a cafe to add it.'
+                    : 'No cafes in your list match this filter.'
+                : 'No cafes are available right now.')
         return
     }
 
-    const noun = visibleCafes.length === 1 ? 'cafe' : 'cafes'
+    const matchingCount = visibleCafes.length
+    const pageCafes = visibleCafes.slice(0, visibleCafeCount)
+    loadMoreButton.hidden = pageCafes.length >= matchingCount
+    const noun = matchingCount === 1 ? 'cafe' : 'cafes'
     listStatus.textContent = prefix + (inListMode
-        ? visibleCafes.length === totalInList
-            ? `${totalInList} ${noun} in your list`
-            : `Showing ${visibleCafes.length} of ${totalInList} cafes in your list`
-        : `${visibleCafes.length} ${noun} found. Add any of them to your list.`)
-    cafeList.replaceChildren(...visibleCafes.map(makeCafeCard))
-    updateMap(visibleCafes)
+        ? `Showing ${pageCafes.length} of ${matchingCount} ${noun} in your list.`
+        : `Showing ${pageCafes.length} of ${matchingCount} ${noun} found.${currentQuery ? ' Add any of them to your list.' : ''}`)
+    loadMoreButton.setAttribute('aria-label', 'Load the next 9 cafes')
+    cafeList.replaceChildren(...pageCafes.map(makeCafeCard))
+    updateMap(pageCafes)
 }
 
-async function loadCafes(terms = '', selectedCafeId = '', { showSuggestions = false } = {}) {
+async function loadCafes(terms = '', selectedCafeId = '', { showSuggestions = false, view = currentView } = {}) {
     const requestId = ++cafeLoadRequestId
     const query = terms.trim()
-    listStatus.textContent = query ? 'Searching cafes…' : 'Loading your list…'
+    const targetView = query ? 'directory' : view
+    listStatus.textContent = query
+        ? 'Searching cafes…'
+        : targetView === 'list' ? 'Loading your list…' : 'Loading cafes…'
     cafeList.replaceChildren()
+    loadMoreButton.hidden = true
     if (!query || !showSuggestions) hideSearchSuggestions()
     const url = query
         ? `/api/cafes/search?terms=${encodeURIComponent(query)}`
-        : '/api/collection'
+        : targetView === 'list' ? '/api/collection' : '/api/cafes'
 
     try {
-        const needSavedCafes = query && !savedCafesLoaded
+        const needSavedCafes = targetView !== 'list' && !savedCafesLoaded
         const [cafes, savedPreferences, listedCafes] = await Promise.all([
             requestJson(url),
             requestJson('/api/preferences'),
@@ -1197,16 +1234,18 @@ async function loadCafes(terms = '', selectedCafeId = '', { showSuggestions = fa
             preferences.set(preference.cafeId, preference)
         }
 
-        const savedList = query ? listedCafes : cafes
+        const savedList = targetView === 'list' ? cafes : listedCafes
         if (savedList) {
             savedCafes.clear()
             for (const cafe of savedList) savedCafes.set(String(cafe._id), cafe)
             savedCafesLoaded = true
         }
 
+        currentView = targetView
         currentCafes = cafes
         currentQuery = query
         currentSelectedCafeId = selectedCafeId
+        visibleCafeCount = PAGE_SIZE
         renderCafes()
         if (selectedCafeId) {
             document.getElementById(`cafe-${selectedCafeId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -1261,7 +1300,8 @@ document.addEventListener('click', event => {
 showListButton.addEventListener('click', () => {
     clearTimeout(searchTimeout)
     searchInput.value = ''
-    loadCafes()
+    const view = currentQuery || currentView === 'directory' ? 'list' : 'directory'
+    loadCafes('', '', { view })
 })
 
 function setFilter(filter) {
@@ -1275,9 +1315,19 @@ for (const button of filterButtons) {
     button.addEventListener('click', () => {
         if (button.dataset.filter === currentFilter) return
         setFilter(button.dataset.filter)
+        visibleCafeCount = PAGE_SIZE
         renderCafes()
     })
 }
 
+loadMoreButton.addEventListener('click', () => {
+    visibleCafeCount += PAGE_SIZE
+    renderCafes()
+})
+
+backToTopButton.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+})
+
 initializeMap()
-loadCafes()
+loadCafes('', '', { view: 'directory' })
