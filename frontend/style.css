@@ -2594,3 +2594,35 @@ button,
 .cafe-map .leaflet-bar a.leaflet-control-zoom-out:not(.leaflet-disabled):hover {
   background-image: url('/assets/map-zoom-out-hover.svg');
 }
+
+/* ---- Hero art animations ---- */
+.hero-illustration {
+  animation: book-in 900ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.hero-latte-art {
+  transform-origin: 50% 60%;
+  animation:
+    latte-pour 1100ms 500ms cubic-bezier(.2, .8, .2, 1) both,
+    latte-float 6s 1.7s ease-in-out infinite;
+}
+
+@keyframes book-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes latte-pour {
+  from { opacity: 0; transform: scale(.4) rotate(-14deg); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes latte-float {
+  0%, 100% { transform: rotate(-1.5deg) translate(0, 0); }
+  50%      { transform: rotate(1.5deg) translate(2px, -2px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-illustration,
+  .hero-latte-art { animation: none; }
+}

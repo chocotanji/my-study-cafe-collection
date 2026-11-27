@@ -1,4 +1,25 @@
 <svg width="188.854" height="177.728" viewBox="0 0 188.854 177.728" fill="none" xmlns="http://www.w3.org/2000/svg">
+<style>
+  [id="Vector 6"], [id="Vector 8"], [id="Vector 7"] {
+    transform-box: fill-box;
+  }
+  [id="Vector 6"] {
+    transform-origin: 15% 100%;
+    animation: frond-top 5s ease-in-out infinite;
+  }
+  [id="Vector 8"] {
+    transform-origin: 50% 100%;
+    animation: frond-mid 5s 0.4s ease-in-out infinite;
+  }
+  [id="Vector 7"] {
+    transform-origin: 50% 50%;
+    animation: frond-base 5s 0.8s ease-in-out infinite;
+  }
+  @keyframes frond-top  { 0%, 100% { transform: rotate(0deg); }   50% { transform: rotate(5deg); } }
+  @keyframes frond-mid  { 0%, 100% { transform: rotate(0deg); }   50% { transform: rotate(-3deg); } }
+  @keyframes frond-base { 0%, 100% { transform: scale(1); }       50% { transform: scale(1.02); } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
 <foreignObject x="0" y="0" width="188.854" height="177.728" overflow="visible" data-figma-3d="true">
 <div xmlns="http://www.w3.org/1999/xhtml" style="position:relative;width:188.8537px;height:177.7281px">
 <div style="position:absolute;left:0;top:0;margin:0;width:184.7707px;height:175.6864px;transform-origin:0 0;transform:matrix(1, 0, 0, 1, 2.0414, 2.0417) translate(50%, 50%) translateZ(-0.3656px) rotateX(66deg) rotateZ(11.6011deg) translate(-50%, -50%)">
