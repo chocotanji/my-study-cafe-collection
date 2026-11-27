@@ -79,7 +79,7 @@ Create `.env` locally with the settings above first. Leave `NETLIFY` unset. The 
 1. **Create** – search the cafe directory and select **Add to my list**. This creates an empty cafe profile for the current browser and opens its review form.
 2. **Read** – the page opens with the fixed cafe directory; nine cafes are shown at a time, and **Loading More...** reveals the next group. Search matches the whole directory and works with the **All Cafés**, **Saved**, and **Favourite** filters. Each saved profile shows its ratings, note, favourite and recommendation badges, and a study score.
 3. **Update** – select **Edit** on a profile to change any rating, the note, the favourite flag, or the recommendation, then **Save**.
-Every cafe card also has a **View more** panel with the cafe's type, rating, price range, phone number, website, address, plus code, and opening hours for each day of the week (today, in Toronto time, is highlighted). These come from the fixed cafe record's `typeOfStore`, `rating`, `priceRange`, `phoneNo`, `webLink`, `address`, `plusCodes`, `hoursByDay`, and `operatingHoursRaw` fields.
+Every cafe card also has a **View more** panel with the cafe's type, rating, price range, phone number, website, address, plus code, and opening hours for each day of the week (today, in Toronto time, is highlighted). These come from the fixed cafe record's `typeOfStore`, `rating`, `priceRange`, `phoneNo`, `webLink`, `address`, `plusCodes`, `hoursByDay`, and `operatingHoursRaw` fields. Records imported straight from a spreadsheet can keep their column headers instead (`Café name`, `Rating`, `Price Range`, `Type of Store`, `Address`, `Plus Codes`, `Operating hours`, `Phone No`, `Web Link`): the API maps them to the fields above, treats `N/A` and `null` as empty, and turns text such as `Mon–Fri 8:00–18:00; Sat–Sun Closed` into per-day hours.
 
 4. **Delete** – select **Delete** and confirm. The cafe is removed from the list and everything saved for it is permanently erased. Adding it again starts a fresh profile.
 
@@ -121,7 +121,7 @@ All responses are JSON. The list and search results return up to 200 fixed cafe 
 | `PUT` | `/api/collection/:cafeId/location` | Save the map position (`{ "lat": 43.65, "lng": -79.38 }`) of a cafe in the list |
 | `DELETE` | `/api/collection/:cafeId` | **Delete** a cafe profile and erase all of its saved data |
 
-The earlier read paths `/api/items` and `/api/search?terms=...` remain aliases. Search matches cafe `title`, `name`, `cafeName`, `address`, or `location` fields. Adding a cafe only accepts IDs that exist in the fixed cafe collection.
+The earlier read paths `/api/items` and `/api/search?terms=...` remain aliases. Search matches the cafe's name (`Café name`, `cafeName`, `name`, or `title`), address (`Address` or `address`), or `location`. Adding a cafe only accepts IDs that exist in the fixed cafe collection.
 
 Example, with `netlify dev` running (use port 3000 instead with `npm run dev`):
 
