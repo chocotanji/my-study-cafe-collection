@@ -2205,31 +2205,34 @@ main {
   outline-offset: 4px;
 }
 
-.back-to-top:hover img {
-  filter: brightness(1.08);
-}
-
 .load-more[hidden] {
   display: none;
 }
 
 .back-to-top {
-  display: inline-flex;
-  width: 73px;
-  height: 73px;
-  flex: none;
-  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 24px auto 0;
+  padding: 6px 10px;
   border: 0;
+  border-radius: 8px;
   background: transparent;
+  color: #b24e50;
   cursor: pointer;
+  font-family: 'Inria Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
 }
 
-.back-to-top img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  transition: filter 0.16s ease;
+.back-to-top:hover {
+  color: #bd6768;
 }
+
+.back-to-top-arrow {
+  flex: none;
+}
+
 
 @media (max-width: 900px) {
   .hero {
@@ -2350,11 +2353,6 @@ main {
 
   .site-footer {
     padding: 24px 22px;
-  }
-
-  .back-to-top {
-    width: 56px;
-    height: 56px;
   }
 }
 
@@ -2551,22 +2549,6 @@ button,
 
 .cafe-details[open] summary {
   border-radius: 9px 9px 0 0;
-}
-
-/* Back to top: the circle is drawn here so it can lighten like the rest. */
-.back-to-top {
-  border-radius: 50%;
-  background: #493320;
-  background-clip: content-box;
-  padding: 1.5px;
-}
-
-.back-to-top:hover {
-  background-color: #62503f;
-}
-
-.back-to-top:hover img {
-  filter: none;
 }
 
 /* White buttons */

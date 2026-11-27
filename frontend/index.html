@@ -89,13 +89,16 @@
         <p id="list-status" class="status-message" role="status" aria-live="polite">Loading cafés…</p>
         <div id="cafe-list" class="cafe-grid" aria-live="polite"></div>
         <button id="load-more" class="load-more" type="button" aria-label="Load the next 9 cafés" hidden>Loading More...</button>
+        <button id="back-to-top" class="back-to-top" type="button">
+          <svg class="back-to-top-arrow" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+            <path d="M8 13.5V2.5M3 7.5l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Back to Top</span>
+        </button>
       </section>
     </main>
 
     <footer class="site-footer">
-      <button id="back-to-top" class="back-to-top" type="button" aria-label="Back to top">
-        <img src="/assets/back-to-top.svg" alt="">
-      </button>
     </footer>
   </body>
 </html>
