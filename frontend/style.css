@@ -1257,7 +1257,7 @@ h1 em {
 
 .cafe-details {
   position: relative;
-  margin-top: 14px;
+  margin-top: 20px;
   border: 1px solid var(--line);
   border-radius: 5px;
   background: var(--paper);
@@ -1279,10 +1279,6 @@ h1 em {
 .cafe-details summary:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
-}
-
-.cafe-details[open] summary {
-  border-bottom: 1px solid var(--line);
 }
 
 .cafe-details-body {
@@ -2122,7 +2118,6 @@ main {
 }
 
 .cafe-details {
-  margin-top: 10px;
   border: 0;
   border-radius: 9px;
   background: #dcd5cf;
