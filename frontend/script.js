@@ -321,42 +321,18 @@ function removeMarker(markers, cafeId) {
 }
 
 function storedLocation(cafe) {
-    const cafeId = String(cafe._id)
-    const mapLocation = preferences.get(cafeId)?.mapLocation
-    const coordinates = getCafeCoordinates(cafe)
+    const mapLocation = preferences.get(String(cafe._id))?.mapLocation
+    return getCafeCoordinates(cafe)
         ?? (mapLocation ? validCoordinates(mapLocation.lat, mapLocation.lng) : null)
-    if (coordinates) return coordinates
-
-    const marker = savedMarkers.get(cafeId)
-    if (!marker) return null
-    const { lat, lng } = marker.getLatLng()
-    return validCoordinates(lat, lng)
-}
-
-function hasValidMapCoordinates(cafe) {
-    return Boolean(storedLocation(cafe))
-}
-
-function updateCafeMapButton(cafe) {
-    const cafeId = String(cafe._id)
-    const card = document.getElementById(`cafe-${cafeId}`)
-    const button = card?.querySelector('.card-map-button')
-    if (button instanceof HTMLButtonElement) {
-        button.disabled = !hasValidMapCoordinates(cafe)
-    }
 }
 
 function addSavedMarker(cafe, coordinates) {
     const cafeId = String(cafe._id)
     removeMarker(resultMarkers, cafeId)
-    if (savedMarkers.has(cafeId)) {
-        updateCafeMapButton(cafe)
-        return savedMarkers.get(cafeId)
-    }
+    if (savedMarkers.has(cafeId)) return savedMarkers.get(cafeId)
     const marker = createCafeMarker(cafe, coordinates)
     savedMarkers.set(cafeId, marker)
     setMarkerVisibility(marker, shouldShowSavedMarker(cafeId))
-    updateCafeMapButton(cafe)
     return marker
 }
 
@@ -413,7 +389,6 @@ async function placeSavedPins(cafes) {
             placed += 1
             const preference = preferences.get(cafeId)
             if (preference) preference.mapLocation = coordinates
-            updateCafeMapButton(cafe)
             requestJson(`/api/collection/${encodeURIComponent(cafeId)}/location`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -421,7 +396,6 @@ async function placeSavedPins(cafes) {
             }).catch(error => console.warn(`Could not remember the map position for ${getCafeName(cafe)}:`, error))
         } catch {
             failedLocations.add(cafeId)
-            updateCafeMapButton(cafe)
         } finally {
             pendingLocations.delete(cafeId)
             describeMap()
@@ -535,7 +509,7 @@ async function geocodeAddress(address) {
     return lookup
 }
 
-function showCafeOnMap(cafe) {
+async function showCafeOnMap(cafe) {
     if (!cafeMap) {
         throw new Error('The map is not available. Check your connection and reload the page.')
     }
@@ -547,16 +521,34 @@ function showCafeOnMap(cafe) {
     }
     let marker = saved ? savedMarkers.get(cafeId) : resultMarkers.get(cafeId)
     if (!marker) {
-        const coordinates = saved ? storedLocation(cafe) : getCafeCoordinates(cafe)
+        let coordinates = saved ? storedLocation(cafe) : getCafeCoordinates(cafe)
         if (!coordinates) {
-            throw new Error('This cafe does not have valid map coordinates.')
+            const address = getCafeAddress(cafe)
+            if (!address.trim()) {
+                throw new Error('This cafe has no coordinates or address in the dataset.')
+            }
+            mapStatus.textContent = `Looking up the address for ${getCafeName(cafe)}…`
+            try {
+                coordinates = await geocodeAddress(address)
+            } catch (error) {
+                failedLocations.add(cafeId)
+                describeMap()
+                throw error
+            }
         }
 
         if (saved) {
             savedCafes.set(cafeId, cafe)
             failedLocations.delete(cafeId)
             marker = addSavedMarker(cafe, coordinates)
-            updateCafeMapButton(cafe)
+            if (!preferences.get(cafeId)?.mapLocation && !getCafeCoordinates(cafe)) {
+                preferences.get(cafeId).mapLocation = coordinates
+                requestJson(`/api/collection/${encodeURIComponent(cafeId)}/location`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(coordinates)
+                }).catch(error => console.warn(`Could not remember the map position for ${getCafeName(cafe)}:`, error))
+            }
         } else {
             marker = createCafeMarker(cafe, coordinates)
             resultMarkers.set(cafeId, marker)
@@ -1109,16 +1101,16 @@ function makeCafeCard(cafe) {
     arrow.alt = ''
     mapButton.append(arrow, document.createTextNode('Show on Map'))
     mapButton.type = 'button'
-    mapButton.disabled = !hasValidMapCoordinates(cafe)
     mapButton.addEventListener('click', async () => {
-        mapButton.disabled = true
+        if (mapButton.getAttribute('aria-busy') === 'true') return
+        mapButton.setAttribute('aria-busy', 'true')
         mapStatus.textContent = `Finding ${getCafeName(cafe)}…`
         try {
             await showCafeOnMap(cafe)
         } catch (error) {
             mapStatus.textContent = error.message
         } finally {
-            mapButton.disabled = !hasValidMapCoordinates(cafe)
+            mapButton.removeAttribute('aria-busy')
         }
     })
     cardActions.append(mapButton)

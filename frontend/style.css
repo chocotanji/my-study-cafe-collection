@@ -3,12 +3,12 @@
 :root {
   color-scheme: light;
   --ink: #25342e;
-  --muted: #6d7870;
-  --paper: #f5f2eb;
+  --muted: #817061;
+  --paper: #f6efe5;
   --card: #fffefa;
   --green: #355b48;
   --green-dark: #244233;
-  --line: #dedfd5;
+  --line: #ead7c2;
   --orange: #d78a56;
   --focus-ring: rgb(178 78 80 / 55%);
   font-family: 'DM Sans', sans-serif;
@@ -270,11 +270,11 @@ h1 em {
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: #e7e9df;
+  background: #eadfce;
 }
 
 .cafe-map .leaflet-tile {
-  filter: grayscale(1) sepia(0.12) saturate(0.7);
+  filter: sepia(0.12) saturate(0.7);
 }
 
 .cafe-map .leaflet-bar a,
@@ -374,11 +374,6 @@ h1 em {
 
 .map-link {
   margin-top: 3px;
-}
-
-.map-link:disabled {
-  cursor: wait;
-  opacity: 0.65;
 }
 
 .section-heading h2,
@@ -603,7 +598,7 @@ h1 em {
   gap: 8%;
   padding: 60px 6.5%;
   border-radius: 8px;
-  background: #e9ece3;
+  background: #edf1e9;
 }
 
 .submission-intro h2 {
@@ -650,7 +645,7 @@ h1 em {
   width: 100%;
   min-height: 45px;
   padding: 11px 12px;
-  border: 1px solid #d5d9cf;
+  border: 1px solid var(--line);
   border-radius: 4px;
   background: var(--card);
   color: var(--ink);
@@ -747,7 +742,6 @@ h1 em {
 
 .primary-button:disabled {
   cursor: wait;
-  opacity: 0.65;
 }
 
 .form-actions {
@@ -774,7 +768,6 @@ h1 em {
 
 .secondary-button:disabled {
   cursor: wait;
-  opacity: 0.65;
 }
 
 .site-footer {
@@ -1191,7 +1184,6 @@ h1 em {
 
 .preference-form .rating-field input[type='range']:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
 }
 
 .rating-unrated {
@@ -1306,7 +1298,7 @@ h1 em {
   border: 1px solid var(--line);
   border-top: 0;
   border-radius: 9px 9px 9px 9px;
-  background: #EFEAE6;
+  background: #efe0ce;
 }
 
 .detail-list,
@@ -1435,11 +1427,11 @@ h1 em {
 :root {
   --ink: #493320;
   --muted: #817061;
-  --paper: #f5f3f1;
+  --paper: #f6efe5;
   --card: #fff;
   --green: #747d42;
   --green-dark: #5e6636;
-  --line: #e0dcdb;
+  --line: #ead7c2;
   --orange: #b24e50;
   font-family: 'Averia Sans Libre', sans-serif;
 }
@@ -1499,7 +1491,7 @@ main {
   overflow-x: clip;
   overflow-y: visible;
   border: 0;
-  background: linear-gradient(242deg, #9cadb8 4%, #d5d0ca 32%, #f5f3f1 62%);
+  background: linear-gradient(242deg, #d6b995 4%, #ead8c1 32%, #f6efe5 62%);
 }
 
 .hero-copy {
@@ -1640,7 +1632,7 @@ main {
   height: 407px;
   border: 0;
   border-radius: 40px;
-  background: #e8e8e8;
+  background: #eadfce;
 }
 
 .cafe-map .leaflet-tile {
@@ -1820,7 +1812,7 @@ main {
 .collection-section {
   width: 100%;
   padding: 80px clamp(24px, 7vw, 100px);
-  background: #f5f3f1;
+  background: var(--paper);
 }
 
 .collection-section > .section-heading {
@@ -1847,7 +1839,7 @@ main {
   align-items: center;
   gap: 10px;
   padding: 0 18px;
-  border: 2px solid #e0dcdb;
+  border: 2px solid var(--line);
   border-radius: 40px;
   background: white;
 }
@@ -1933,7 +1925,7 @@ main {
 }
 
 .filter-button {
-  border-color: #e0dcdb;
+  border-color: var(--line);
   background: white;
   color: #493320;
   font-family: 'Inria Sans', sans-serif;
@@ -1960,14 +1952,14 @@ main {
   min-width: 0;
   min-height: 321px;
   padding: 28px 30px;
-  border: 2px solid #e0dcdb;
+  border: 2px solid var(--line);
   border-radius: 30px;
   background: white;
   color: #493320;
 }
 
 .cafe-card.is-in-list {
-  border-color: #e0dcdb;
+  border-color: var(--line);
 }
 
 .card-topline {
@@ -1998,7 +1990,7 @@ main {
 }
 
 .favorite-toggle:hover {
-  background: #f5f3f1;
+  background: var(--paper);
 }
 
 .card-badges {
@@ -2006,7 +1998,7 @@ main {
 }
 
 .badge {
-  background: #f5f3f1;
+  background: var(--paper);
   color: #493320;
   font-family: 'Inria Sans', sans-serif;
 }
@@ -2085,28 +2077,13 @@ main {
 
 .add-button:disabled {
   cursor: wait;
-  opacity: 0.65;
-}
-
-.card-map-button:disabled {
-  cursor: not-allowed;
-}
-
-.card-map-button:disabled {
-  border-color: #A0A0A0;
-  background: #A0A0A0;
-  color: #FFFFFF;
-}
-
-.card-map-button:disabled:hover {
-  background: #A0A0A0;
 }
 
 .cafe-details {
   margin-top: 10px;
   border: 0;
   border-radius: 9px;
-  background: #dcd5cf;
+  background: #efe0ce;
 }
 
 .cafe-details summary {
@@ -2155,7 +2132,7 @@ main {
 
 .preference-form,
 .cafe-profile {
-  border-color: #e0dcdb;
+  border-color: var(--line);
 }
 
 .privacy-note {
@@ -2167,7 +2144,7 @@ main {
   width: 100%;
   justify-content: flex-end;
   padding: 28px clamp(24px, 7vw, 100px);
-  background: #f5f3f1;
+  background: var(--paper);
   color: #817061;
   font-family: 'Inria Sans', sans-serif;
 }
