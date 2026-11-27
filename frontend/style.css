@@ -2771,3 +2771,41 @@ button,
     width: 100%;
   }
 }
+
+/* ---- "Make Your List Here" panel ----
+   Heading, search bar and A–Z list sit centred in a white panel with the
+   same 2px stroke and rounded corners as the café cards. It shares the
+   section's side padding, so it lines up with the card grid. */
+.list-builder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 44px 40px 40px;
+  border: 2px solid #e0dcdb;
+  border-radius: 30px;
+  background: white;
+  text-align: center;
+}
+
+.list-builder > .section-heading {
+  justify-content: center;
+  width: 100%;
+}
+
+.list-builder .search-container,
+.list-builder .letter-filter {
+  flex: none;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.list-builder .search-suggestions {
+  text-align: left;
+}
+
+@media (max-width: 650px) {
+  .list-builder {
+    padding: 32px 18px 24px;
+    border-radius: 24px;
+  }
+}
