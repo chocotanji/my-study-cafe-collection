@@ -321,9 +321,16 @@ function removeMarker(markers, cafeId) {
 }
 
 function storedLocation(cafe) {
-    const mapLocation = preferences.get(String(cafe._id))?.mapLocation
-    return getCafeCoordinates(cafe)
+    const cafeId = String(cafe._id)
+    const mapLocation = preferences.get(cafeId)?.mapLocation
+    const coordinates = getCafeCoordinates(cafe)
         ?? (mapLocation ? validCoordinates(mapLocation.lat, mapLocation.lng) : null)
+    if (coordinates) return coordinates
+
+    const marker = savedMarkers.get(cafeId)
+    if (!marker) return null
+    const { lat, lng } = marker.getLatLng()
+    return validCoordinates(lat, lng)
 }
 
 function hasValidMapCoordinates(cafe) {
@@ -342,10 +349,14 @@ function updateCafeMapButton(cafe) {
 function addSavedMarker(cafe, coordinates) {
     const cafeId = String(cafe._id)
     removeMarker(resultMarkers, cafeId)
-    if (savedMarkers.has(cafeId)) return savedMarkers.get(cafeId)
+    if (savedMarkers.has(cafeId)) {
+        updateCafeMapButton(cafe)
+        return savedMarkers.get(cafeId)
+    }
     const marker = createCafeMarker(cafe, coordinates)
     savedMarkers.set(cafeId, marker)
     setMarkerVisibility(marker, shouldShowSavedMarker(cafeId))
+    updateCafeMapButton(cafe)
     return marker
 }
 
