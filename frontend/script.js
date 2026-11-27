@@ -326,16 +326,17 @@ function storedLocation(cafe) {
         ?? (mapLocation ? validCoordinates(mapLocation.lat, mapLocation.lng) : null)
 }
 
-function canShowCafeOnMap(cafe) {
-    const cafeId = String(cafe._id)
+function hasValidMapCoordinates(cafe) {
     return Boolean(storedLocation(cafe))
-        || (Boolean(getCafeAddress(cafe).trim()) && !failedLocations.has(cafeId))
 }
 
-function disableCafeMapButton(cafeId) {
+function updateCafeMapButton(cafe) {
+    const cafeId = String(cafe._id)
     const card = document.getElementById(`cafe-${cafeId}`)
     const button = card?.querySelector('.card-map-button')
-    if (button instanceof HTMLButtonElement) button.disabled = true
+    if (button instanceof HTMLButtonElement) {
+        button.disabled = !hasValidMapCoordinates(cafe)
+    }
 }
 
 function addSavedMarker(cafe, coordinates) {
@@ -401,6 +402,7 @@ async function placeSavedPins(cafes) {
             placed += 1
             const preference = preferences.get(cafeId)
             if (preference) preference.mapLocation = coordinates
+            updateCafeMapButton(cafe)
             requestJson(`/api/collection/${encodeURIComponent(cafeId)}/location`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -408,7 +410,7 @@ async function placeSavedPins(cafes) {
             }).catch(error => console.warn(`Could not remember the map position for ${getCafeName(cafe)}:`, error))
         } catch {
             failedLocations.add(cafeId)
-            disableCafeMapButton(cafeId)
+            updateCafeMapButton(cafe)
         } finally {
             pendingLocations.delete(cafeId)
             describeMap()
@@ -522,7 +524,7 @@ async function geocodeAddress(address) {
     return lookup
 }
 
-async function showCafeOnMap(cafe) {
+function showCafeOnMap(cafe) {
     if (!cafeMap) {
         throw new Error('The map is not available. Check your connection and reload the page.')
     }
@@ -534,35 +536,16 @@ async function showCafeOnMap(cafe) {
     }
     let marker = saved ? savedMarkers.get(cafeId) : resultMarkers.get(cafeId)
     if (!marker) {
-        let coordinates = saved ? storedLocation(cafe) : getCafeCoordinates(cafe)
+        const coordinates = saved ? storedLocation(cafe) : getCafeCoordinates(cafe)
         if (!coordinates) {
-            const address = getCafeAddress(cafe)
-            if (!address.trim()) {
-                throw new Error('This cafe has no coordinates or address in the dataset.')
-            }
-            mapStatus.textContent = `Looking up the address for ${getCafeName(cafe)}…`
-            try {
-                coordinates = await geocodeAddress(address)
-            } catch (error) {
-                failedLocations.add(cafeId)
-                disableCafeMapButton(cafeId)
-                describeMap()
-                throw error
-            }
+            throw new Error('This cafe does not have valid map coordinates.')
         }
 
         if (saved) {
             savedCafes.set(cafeId, cafe)
             failedLocations.delete(cafeId)
             marker = addSavedMarker(cafe, coordinates)
-            if (!preferences.get(cafeId)?.mapLocation && !getCafeCoordinates(cafe)) {
-                preferences.get(cafeId).mapLocation = coordinates
-                requestJson(`/api/collection/${encodeURIComponent(cafeId)}/location`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(coordinates)
-                }).catch(() => {})
-            }
+            updateCafeMapButton(cafe)
         } else {
             marker = createCafeMarker(cafe, coordinates)
             resultMarkers.set(cafeId, marker)
@@ -1115,7 +1098,7 @@ function makeCafeCard(cafe) {
     arrow.alt = ''
     mapButton.append(arrow, document.createTextNode('Show on Map'))
     mapButton.type = 'button'
-    mapButton.disabled = !canShowCafeOnMap(cafe)
+    mapButton.disabled = !hasValidMapCoordinates(cafe)
     mapButton.addEventListener('click', async () => {
         mapButton.disabled = true
         mapStatus.textContent = `Finding ${getCafeName(cafe)}…`
@@ -1124,7 +1107,7 @@ function makeCafeCard(cafe) {
         } catch (error) {
             mapStatus.textContent = error.message
         } finally {
-            mapButton.disabled = !canShowCafeOnMap(cafe)
+            mapButton.disabled = !hasValidMapCoordinates(cafe)
         }
     })
     cardActions.append(mapButton)
