@@ -191,7 +191,88 @@ function getCafeCoordinates(cafe) {
         }
     }
 
-    return null
+    return decodePlusCode(cafe.plusCodes ?? cafe.plusCode)
+}
+
+const PLUS_CODE_ALPHABET = '23456789CFGHJMPQRVWX'
+const PLUS_CODE_PAIR_RESOLUTIONS = [20, 1, 0.05, 0.0025, 0.000125]
+
+// Turns a plus code such as "MJ3F+JX Toronto, Ontario" into coordinates.
+// Short codes are completed using the Toronto area as the reference point,
+// which works for any cafe within roughly 50 km of downtown.
+function decodePlusCode(value) {
+    if (typeof value !== 'string') return null
+    const match = value.trim().toUpperCase().match(/^([23456789CFGHJMPQRVWX]{2,8})\+([23456789CFGHJMPQRVWX]*)/)
+    if (!match) return null
+
+    const [, beforeSeparator, afterSeparator] = match
+    if (beforeSeparator.length % 2 !== 0 || afterSeparator.length === 1) return null
+
+    const missing = 8 - beforeSeparator.length
+    const prefix = missing > 0 ? plusCodePrefix(torontoCenter[0], torontoCenter[1], missing) : ''
+    let area = decodeFullPlusCode(prefix + beforeSeparator + afterSeparator)
+    if (!area) return null
+
+    if (missing > 0) {
+        // Move to the neighbouring cell when that is closer to the reference.
+        const resolution = PLUS_CODE_PAIR_RESOLUTIONS[missing / 2 - 1]
+        const half = resolution / 2
+        let { lat, lng } = area
+        if (torontoCenter[0] + half < lat && lat - resolution >= -90) lat -= resolution
+        else if (torontoCenter[0] - half > lat && lat + resolution <= 90) lat += resolution
+        if (torontoCenter[1] + half < lng) lng -= resolution
+        else if (torontoCenter[1] - half > lng) lng += resolution
+        area = { lat, lng }
+    }
+
+    return validCoordinates(area.lat, area.lng)
+}
+
+function plusCodePrefix(latitude, longitude, length) {
+    let lat = latitude + 90
+    let lng = longitude + 180
+    let prefix = ''
+    for (let pair = 0; pair < length / 2; pair += 1) {
+        const resolution = PLUS_CODE_PAIR_RESOLUTIONS[pair]
+        const latDigit = Math.floor(lat / resolution)
+        const lngDigit = Math.floor(lng / resolution)
+        prefix += PLUS_CODE_ALPHABET[latDigit] + PLUS_CODE_ALPHABET[lngDigit]
+        lat -= latDigit * resolution
+        lng -= lngDigit * resolution
+    }
+    return prefix
+}
+
+// Returns the centre of the area covered by a full (8+ character) plus code.
+function decodeFullPlusCode(code) {
+    let lat = -90
+    let lng = -180
+    let latSize = 0
+    let lngSize = 0
+
+    for (let index = 0; index < code.length; index += 1) {
+        const digit = PLUS_CODE_ALPHABET.indexOf(code[index])
+        if (digit < 0) return null
+
+        if (index < 10) {
+            const resolution = PLUS_CODE_PAIR_RESOLUTIONS[Math.floor(index / 2)]
+            if (index % 2 === 0) {
+                lat += digit * resolution
+                latSize = resolution
+            } else {
+                lng += digit * resolution
+                lngSize = resolution
+            }
+        } else {
+            // Grid refinement: each extra character splits the cell into 5 rows × 4 columns.
+            latSize /= 5
+            lngSize /= 4
+            lat += Math.floor(digit / 4) * latSize
+            lng += (digit % 4) * lngSize
+        }
+    }
+
+    return { lat: lat + latSize / 2, lng: lng + lngSize / 2 }
 }
 
 function initializeMap() {
@@ -481,6 +562,21 @@ function updateMap(visibleCafes) {
     describeMap()
 }
 
+// The address lookup service fails on building descriptions, unit numbers and
+// postal codes, so keep only the street address and city.
+function cleanAddressForLookup(address) {
+    const parts = address.split(',').map(part => part.trim()).filter(Boolean)
+    const streetIndex = parts.findIndex(part => /^\d/.test(part))
+    const kept = (streetIndex > 0 ? parts.slice(streetIndex) : parts)
+        .map(part => part
+            .replace(/\s*(?:#|\b(?:unit|suite|ste|apt)\b\.?#?)\s*[\w-]+/gi, '')
+            .replace(/\b(ON|Ontario)\s+[A-Z]\d[A-Z]\s?\d[A-Z]\d\b/i, '$1')
+            .trim())
+        .filter(Boolean)
+    const cleaned = kept.join(', ')
+    return /\b(ON|Ontario)\b/i.test(cleaned) ? `${cleaned}, Canada` : `${cleaned}, Toronto, Ontario, Canada`
+}
+
 async function geocodeAddress(address) {
     const query = address.trim()
     const cached = geocodingCache.get(query)
@@ -496,9 +592,7 @@ async function geocodeAddress(address) {
         }
         lastGeocodingAt = Date.now()
 
-        const searchQuery = /\btoronto\b/i.test(query)
-            ? query
-            : `${query}, Toronto, Ontario, Canada`
+        const searchQuery = cleanAddressForLookup(query)
         const response = await fetch(
             `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(searchQuery)}`,
             { headers: { 'Accept-Language': navigator.language || 'en' } }
