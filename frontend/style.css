@@ -1305,7 +1305,7 @@ h1 em {
   overflow: auto;
   border: 1px solid var(--line);
   border-top: 0;
-  border-radius: 0 0 9px 9px;
+  border-radius: 9px 9px 9px 9px;
   background: #EFEAE6;
 }
 
