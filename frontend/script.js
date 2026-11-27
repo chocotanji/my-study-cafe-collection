@@ -206,8 +206,8 @@ function initializeMap() {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
     }).addTo(cafeMap)
     for (const [variant, className, html] of [
-        ['saved', 'cafe-map-marker is-saved', '<img class="map-marker-svg" src="/assets/map-pin.svg" alt="">'],
-        ['favorite', 'cafe-map-marker is-favorite', '<img class="map-marker-svg" src="/assets/heart-filled.svg" alt="">'],
+        ['saved', 'cafe-map-marker is-saved', '<img class="map-marker-svg" src="/assets/map-pin-map.svg" alt="">'],
+        ['favorite', 'cafe-map-marker is-favorite', '<img class="map-marker-svg" src="/assets/heart-filled-map.svg" alt="">'],
         ['result', 'cafe-map-marker is-result', '']
     ]) {
         markerIcons[variant] = window.L.divIcon({
@@ -326,6 +326,18 @@ function storedLocation(cafe) {
         ?? (mapLocation ? validCoordinates(mapLocation.lat, mapLocation.lng) : null)
 }
 
+function canShowCafeOnMap(cafe) {
+    const cafeId = String(cafe._id)
+    return Boolean(storedLocation(cafe))
+        || (Boolean(getCafeAddress(cafe).trim()) && !failedLocations.has(cafeId))
+}
+
+function disableCafeMapButton(cafeId) {
+    const card = document.getElementById(`cafe-${cafeId}`)
+    const button = card?.querySelector('.card-map-button')
+    if (button instanceof HTMLButtonElement) button.disabled = true
+}
+
 function addSavedMarker(cafe, coordinates) {
     const cafeId = String(cafe._id)
     removeMarker(resultMarkers, cafeId)
@@ -396,6 +408,7 @@ async function placeSavedPins(cafes) {
             }).catch(error => console.warn(`Could not remember the map position for ${getCafeName(cafe)}:`, error))
         } catch {
             failedLocations.add(cafeId)
+            disableCafeMapButton(cafeId)
         } finally {
             pendingLocations.delete(cafeId)
             describeMap()
@@ -528,7 +541,14 @@ async function showCafeOnMap(cafe) {
                 throw new Error('This cafe has no coordinates or address in the dataset.')
             }
             mapStatus.textContent = `Looking up the address for ${getCafeName(cafe)}…`
-            coordinates = await geocodeAddress(address)
+            try {
+                coordinates = await geocodeAddress(address)
+            } catch (error) {
+                failedLocations.add(cafeId)
+                disableCafeMapButton(cafeId)
+                describeMap()
+                throw error
+            }
         }
 
         if (saved) {
@@ -1089,26 +1109,25 @@ function makeCafeCard(cafe) {
     }
 
     const cardActions = makeElement('div', 'card-actions')
-    if (address || getCafeCoordinates(cafe)) {
-        const mapButton = makeElement('button', 'map-link card-map-button')
-        const arrow = makeElement('img', 'map-button-arrow')
-        arrow.src = '/assets/arrow.svg'
-        arrow.alt = ''
-        mapButton.append(arrow, document.createTextNode('Show on Map'))
-        mapButton.type = 'button'
-        mapButton.addEventListener('click', async () => {
-            mapButton.disabled = true
-            mapStatus.textContent = `Finding ${getCafeName(cafe)}…`
-            try {
-                await showCafeOnMap(cafe)
-            } catch (error) {
-                mapStatus.textContent = error.message
-            } finally {
-                mapButton.disabled = false
-            }
-        })
-        cardActions.append(mapButton)
-    }
+    const mapButton = makeElement('button', 'map-link card-map-button')
+    const arrow = makeElement('img', 'map-button-arrow')
+    arrow.src = '/assets/arrow.svg'
+    arrow.alt = ''
+    mapButton.append(arrow, document.createTextNode('Show on Map'))
+    mapButton.type = 'button'
+    mapButton.disabled = !canShowCafeOnMap(cafe)
+    mapButton.addEventListener('click', async () => {
+        mapButton.disabled = true
+        mapStatus.textContent = `Finding ${getCafeName(cafe)}…`
+        try {
+            await showCafeOnMap(cafe)
+        } catch (error) {
+            mapStatus.textContent = error.message
+        } finally {
+            mapButton.disabled = !canShowCafeOnMap(cafe)
+        }
+    })
+    cardActions.append(mapButton)
 
     if (typeof cafe.description === 'string' && cafe.description) {
         card.append(makeElement('p', 'cafe-notes', cafe.description))
