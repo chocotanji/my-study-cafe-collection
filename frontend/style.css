@@ -1292,7 +1292,6 @@ h1 em {
 }
 
 .cafe-details[open] .cafe-details-body {
-  position: absolute;
   z-index: 4;
   top: 100%;
   right: 0;
@@ -1301,7 +1300,6 @@ h1 em {
   overflow: auto;
   border: 1px solid var(--line);
   border-top: 0;
-  border-radius: 9px 9px 9px 9px;
   background: #EFEAE6;
 }
 
@@ -2119,7 +2117,6 @@ main {
 
 .cafe-details {
   border: 0;
-  border-radius: 9px;
   background: #dcd5cf;
 }
 
@@ -2151,10 +2148,6 @@ main {
 
 .cafe-details[open] summary::before {
   transform: rotate(180deg);
-}
-
-.cafe-details[open] summary {
-  border-bottom: 1px solid rgb(73 51 32 / 15%);
 }
 
 .cafe-details-body {
@@ -2380,10 +2373,7 @@ main {
   outline: none;
 }
 
-/* Lift the expanded "View More Details" panel off the cards below it. */
-.cafe-details[open] .cafe-details-body {
-  box-shadow: 0 14px 28px rgb(73 51 32 / 18%), 0 3px 8px rgb(73 51 32 / 10%);
-}
+
 
 .preference-form .primary-button {
   border-radius: 40px;
