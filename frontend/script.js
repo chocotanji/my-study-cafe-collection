@@ -7,11 +7,14 @@ const searchContainer = document.querySelector('.search-container')
 const searchSuggestions = document.querySelector('#search-suggestions')
 const listTools = document.querySelector('#list-tools')
 const filterButtons = [...document.querySelectorAll('#list-tools [data-filter]')]
+const letterButtons = [...document.querySelectorAll('#letter-filter [data-letter]')]
 const mapFilterButtons = [...document.querySelectorAll('.map-legend [data-map-filter]')]
 const loadMoreButton = document.querySelector('#load-more')
 const backToTopButton = document.querySelector('#back-to-top')
 const PAGE_SIZE = 9
 let currentFilter = 'all'
+// '' shows every cafe; 'A'–'Z' only cafes whose name starts with that letter.
+let currentLetter = ''
 // 'all' shows every cafe, 'saved' only the visitor's list, 'favorite' only hearts.
 let mapPinFilter = 'all'
 const preferences = new Map()
@@ -371,10 +374,11 @@ async function openCafeCard(cafeId) {
     if (!card) {
         // The card can be missing because a search or list filter is hiding it,
         // or because it is on a page of results that has not been loaded yet.
-        if (currentQuery || currentSelectedCafeId || currentFilter !== 'all') {
+        if (currentQuery || currentSelectedCafeId || currentFilter !== 'all' || currentLetter) {
             clearTimeout(searchTimeout)
             searchInput.value = ''
             setFilter('all')
+            setLetter('')
             currentSelectedCafeId = ''
             await loadCafes()
         }
@@ -1373,6 +1377,29 @@ const listFilters = {
     }
 }
 
+// First letter of a cafe's name as A–Z, ignoring accents (so "Écully" counts as E).
+function getCafeLetter(cafe) {
+    const first = getCafeName(cafe).trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0)
+    return first.toUpperCase()
+}
+
+function setLetter(letter) {
+    currentLetter = letter
+    for (const button of letterButtons) {
+        button.setAttribute('aria-pressed', String(button.dataset.letter === currentLetter))
+    }
+}
+
+// Greys out letters that no cafe in the current results starts with.
+function updateLetterAvailability() {
+    const available = new Set(currentCafes.map(getCafeLetter))
+    for (const button of letterButtons) {
+        const letter = button.dataset.letter
+        // A selected letter stays clickable so it can always be switched off.
+        button.disabled = !available.has(letter) && letter !== currentLetter
+    }
+}
+
 function compareByName(a, b) {
     return getCafeName(a).localeCompare(getCafeName(b))
 }
@@ -1384,6 +1411,10 @@ function renderCafes(announcement = '') {
 
     const matches = listFilters[currentFilter] ?? listFilters.all
     visibleCafes = visibleCafes.filter(matches)
+    if (currentLetter) {
+        visibleCafes = visibleCafes.filter(cafe => getCafeLetter(cafe) === currentLetter)
+    }
+    updateLetterAvailability()
     if (currentFilter !== 'all') {
         visibleCafes.sort(compareByName)
     }
@@ -1394,7 +1425,10 @@ function renderCafes(announcement = '') {
         cafeList.replaceChildren()
         loadMoreButton.hidden = true
         updateMap([])
-        const noResultsMessage = currentQuery
+        const listKind = currentFilter === 'saved' ? 'saved ' : currentFilter === 'favorite' ? 'favourite ' : ''
+        const noResultsMessage = currentLetter
+            ? `No ${listKind}cafés start with “${currentLetter}”${currentQuery ? ' for that search' : ''}.`
+            : currentQuery
             ? currentFilter === 'saved'
                 ? 'No saved cafés match that search.'
                 : currentFilter === 'favorite'
@@ -1415,8 +1449,9 @@ function renderCafes(announcement = '') {
     const resultLabel = currentFilter === 'saved'
         ? 'saved cafés'
         : currentFilter === 'favorite' ? 'favourite cafés' : 'cafés found'
+    const letterLabel = currentLetter ? ` starting with “${currentLetter}”` : ''
     listStatus.textContent = prefix
-        + `Showing ${pageCafes.length} of ${matchingCount} ${resultLabel}.${currentQuery && currentFilter === 'all' ? ' Add any of them to your list.' : ''}`
+        + `Showing ${pageCafes.length} of ${matchingCount} ${resultLabel}${letterLabel}.${currentQuery && currentFilter === 'all' ? ' Add any of them to your list.' : ''}`
     loadMoreButton.setAttribute('aria-label', 'Load the next 9 cafes')
     cafeList.replaceChildren(...pageCafes.map(makeCafeCard))
     updateMap(pageCafes)
@@ -1506,6 +1541,7 @@ searchSuggestions.addEventListener('click', event => {
     if (!(suggestion instanceof HTMLButtonElement)) return
 
     clearTimeout(searchTimeout)
+    setLetter('')
     searchInput.value = suggestion.dataset.cafeName
     hideSearchSuggestions()
     loadCafes(searchInput.value, suggestion.dataset.cafeId)
@@ -1540,6 +1576,16 @@ for (const button of filterButtons) {
     button.addEventListener('click', () => {
         if (button.dataset.filter === currentFilter) return
         setFilter(button.dataset.filter)
+        visibleCafeCount = PAGE_SIZE
+        currentSelectedCafeId = ''
+        renderCafes()
+    })
+}
+
+for (const button of letterButtons) {
+    button.addEventListener('click', () => {
+        // Clicking the active letter again clears it.
+        setLetter(button.dataset.letter === currentLetter ? '' : button.dataset.letter)
         visibleCafeCount = PAGE_SIZE
         currentSelectedCafeId = ''
         renderCafes()

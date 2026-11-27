@@ -2689,3 +2689,85 @@ button,
     translate: none;
   }
 }
+
+/* ---- A–Z letter filter (sits under the search bar) ----
+   Same button language as the filter pills: 2px stroke, white by default,
+   darker beige on hover, green when selected. */
+.letter-filter {
+  display: grid;
+  grid-template-columns: repeat(13, minmax(0, 1fr));
+  gap: 6px;
+  width: min(612px, 55vw);
+  margin-top: 14px;
+}
+
+.letter-button {
+  min-height: 38px;
+  padding: 0;
+  border: 2px solid #e0dcdb;
+  border-radius: 99px;
+  background: white;
+  color: #493320;
+  cursor: pointer;
+  font: 700 0.85rem 'Inria Sans', sans-serif;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    translate 0.16s ease;
+}
+
+.letter-button:hover:not(:disabled):not([aria-pressed='true']) {
+  border-color: #e0dcdb;
+  background: #dcd5cf;
+}
+
+.letter-button[aria-pressed='true'] {
+  border-color: #747d42;
+  background: #747d42;
+  color: white;
+}
+
+.letter-button[aria-pressed='true']:hover:not(:disabled) {
+  border-color: #878f5c;
+  background: #878f5c;
+}
+
+.letter-button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.letter-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+@media (hover: hover) {
+  .letter-button:hover:not(:disabled) {
+    translate: 0 -3px;
+  }
+}
+
+.letter-button:active:not(:disabled) {
+  translate: 0 -1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .letter-button:is(:hover, :active) {
+    translate: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .letter-filter {
+    width: min(500px, 50vw);
+  }
+}
+
+@media (max-width: 650px) {
+  .letter-filter {
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    width: 100%;
+  }
+}
