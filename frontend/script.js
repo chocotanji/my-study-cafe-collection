@@ -368,12 +368,16 @@ function markerPopup(cafe) {
 // filter is currently hiding a saved cafe.
 async function openCafeCard(cafeId) {
     let card = document.getElementById(`cafe-${cafeId}`)
-    if (!card && isInPersonalCollection(cafeId)) {
-        clearTimeout(searchTimeout)
-        searchInput.value = ''
-        setFilter('all')
-        currentSelectedCafeId = ''
-        await loadCafes()
+    if (!card) {
+        // The card can be missing because a search or list filter is hiding it,
+        // or because it is on a page of results that has not been loaded yet.
+        if (currentQuery || currentSelectedCafeId || currentFilter !== 'all') {
+            clearTimeout(searchTimeout)
+            searchInput.value = ''
+            setFilter('all')
+            currentSelectedCafeId = ''
+            await loadCafes()
+        }
         card = document.getElementById(`cafe-${cafeId}`)
         while (!card && visibleCafeCount < currentCafes.length) {
             visibleCafeCount += PAGE_SIZE
