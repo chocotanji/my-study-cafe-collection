@@ -12,7 +12,8 @@ const loadMoreButton = document.querySelector('#load-more')
 const backToTopButton = document.querySelector('#back-to-top')
 const PAGE_SIZE = 9
 let currentFilter = 'all'
-let mapPinFilter = 'saved'
+// 'all' shows every cafe, 'saved' only the visitor's list, 'favorite' only hearts.
+let mapPinFilter = 'all'
 const preferences = new Map()
 // Cafes in the visitor's list, keyed by ID for map pins and location lookups.
 const savedCafes = new Map()
@@ -24,6 +25,9 @@ const failedLocations = new Set()
 let savedCafesLoaded = false
 const geocodingCache = new Map()
 const torontoCenter = [43.6532, -79.3832]
+// Default map view: zoomed in on downtown Toronto so the pins spread out.
+const downtownCenter = [43.6555, -79.3870]
+const DOWNTOWN_ZOOM = 14
 let cafeMap
 const markerIcons = {}
 let selectedCafeMarker
@@ -32,12 +36,32 @@ let lastGeocodingAt = 0
 let searchTimeout
 let cafeLoadRequestId = 0
 let currentCafes = []
+// Every cafe in the dataset, so the map can pin all of them from the start.
+let allCafes = []
 let currentQuery = ''
 let visibleCafeCount = PAGE_SIZE
 let currentSelectedCafeId = ''
 const openEditors = new Set()
 const cardMessages = new Map()
 const openDetails = new Set()
+
+// Masonry layout: each card spans as many small grid rows as its height needs,
+// so a tall (expanded) card no longer leaves gaps beside it in its row.
+const MASONRY_ROW_HEIGHT = 4
+const cardResizeObserver = 'ResizeObserver' in window
+    ? new ResizeObserver(entries => {
+        for (const entry of entries) sizeCardForMasonry(entry.target)
+    })
+    : null
+if (cardResizeObserver) cafeList.classList.add('is-masonry')
+
+function sizeCardForMasonry(card) {
+    if (!card.isConnected) return
+    const styles = window.getComputedStyle(cafeList)
+    const gap = parseFloat(styles.columnGap) || 0
+    const height = card.getBoundingClientRect().height
+    card.style.gridRowEnd = `span ${Math.max(1, Math.ceil((height + gap) / MASONRY_ROW_HEIGHT))}`
+}
 
 // Kept in sync with backend/validation/preferences.js.
 const RATING_FIELDS = [
@@ -281,7 +305,7 @@ function initializeMap() {
         return
     }
 
-    cafeMap = window.L.map('cafe-map', { scrollWheelZoom: false }).setView(torontoCenter, 11)
+    cafeMap = window.L.map('cafe-map', { scrollWheelZoom: false }).setView(downtownCenter, DOWNTOWN_ZOOM)
     window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
@@ -289,7 +313,7 @@ function initializeMap() {
     for (const [variant, className, html] of [
         ['saved', 'cafe-map-marker is-saved', '<img class="map-marker-svg" src="/assets/map-pin-map.svg" alt="">'],
         ['favorite', 'cafe-map-marker is-favorite', '<img class="map-marker-svg" src="/assets/heart-filled-map.svg" alt="">'],
-        ['result', 'cafe-map-marker is-result', '']
+        ['result', 'cafe-map-marker is-result', '<img class="map-marker-svg" src="/assets/all-cafes-pin-map.svg" alt="">']
     ]) {
         markerIcons[variant] = window.L.divIcon({
             className,
@@ -299,12 +323,14 @@ function initializeMap() {
             popupAnchor: [0, -32]
         })
     }
-    mapStatus.textContent = 'Cafes you add to your list are pinned here.'
+    mapStatus.textContent = 'Loading café pins…'
 }
 
 function markerIconFor(cafeId) {
     if (!isInPersonalCollection(cafeId)) return markerIcons.result
-    return mapPinFilter === 'favorite' ? markerIcons.favorite : markerIcons.saved
+    if (mapPinFilter === 'saved') return markerIcons.saved
+    if (mapPinFilter === 'favorite') return markerIcons.favorite
+    return preferences.get(cafeId)?.favorite === true ? markerIcons.favorite : markerIcons.saved
 }
 
 function markerPopup(cafe) {
@@ -369,7 +395,12 @@ function highlightCafeMarker(marker) {
 }
 
 function createCafeMarker(cafe, coordinates) {
-    const marker = window.L.marker([coordinates.lat, coordinates.lng], { icon: markerIconFor(String(cafe._id)) })
+    const cafeId = String(cafe._id)
+    // Keep the visitor's own pins on top of the other cafes' pins.
+    const marker = window.L.marker([coordinates.lat, coordinates.lng], {
+        icon: markerIconFor(cafeId),
+        zIndexOffset: isInPersonalCollection(cafeId) ? 1000 : 0
+    })
         .addTo(cafeMap)
         .bindPopup(() => markerPopup(cafe))
     marker.on('click', () => highlightCafeMarker(marker))
@@ -377,7 +408,7 @@ function createCafeMarker(cafe, coordinates) {
 }
 
 function shouldShowSavedMarker(cafeId) {
-    return mapPinFilter === 'saved' || preferences.get(cafeId)?.favorite === true
+    return mapPinFilter !== 'favorite' || preferences.get(cafeId)?.favorite === true
 }
 
 function setMarkerVisibility(marker, visible) {
@@ -496,34 +527,41 @@ async function placeSavedPins(cafes) {
         }
     }
 
-    if (placed > 0 && !cafeMap.getContainer().querySelector('.leaflet-popup')) {
+    if (placed > 0 && mapPinFilter !== 'all' && !cafeMap.getContainer().querySelector('.leaflet-popup')) {
         fitMapToPins()
     }
 }
 
-// Shows temporary pins for visible search results that are not in the list.
+// Pins every cafe that is not in the list, so any of them can be clicked.
 function syncResultMarkers(visibleCafes) {
     if (!cafeMap) return
-    const visibleIds = new Set(visibleCafes.map(cafe => String(cafe._id)))
+    const cafesById = new Map()
+    for (const cafe of [...allCafes, ...visibleCafes]) cafesById.set(String(cafe._id), cafe)
+    const pinnedCafes = [...cafesById.values()]
+    const visibleIds = new Set(cafesById.keys())
 
     for (const cafeId of [...resultMarkers.keys()]) {
         if (!visibleIds.has(cafeId) || isInPersonalCollection(cafeId)) {
             removeMarker(resultMarkers, cafeId)
         } else {
-            setMarkerVisibility(resultMarkers.get(cafeId), mapPinFilter === 'saved')
+            setMarkerVisibility(resultMarkers.get(cafeId), mapPinFilter === 'all')
         }
     }
 
-    for (const cafe of visibleCafes) {
+    for (const cafe of pinnedCafes) {
         const cafeId = String(cafe._id)
         if (isInPersonalCollection(cafeId) || resultMarkers.has(cafeId)) continue
         const coordinates = getCafeCoordinates(cafe)
         if (coordinates) {
             const marker = createCafeMarker(cafe, coordinates)
             resultMarkers.set(cafeId, marker)
-            setMarkerVisibility(marker, mapPinFilter === 'saved')
+            setMarkerVisibility(marker, mapPinFilter === 'all')
         }
     }
+}
+
+function showDowntown() {
+    cafeMap?.setView(downtownCenter, DOWNTOWN_ZOOM)
 }
 
 function fitMapToPins() {
@@ -534,31 +572,34 @@ function fitMapToPins() {
     if (bounds.length > 0) {
         cafeMap.fitBounds(bounds, { padding: [32, 32], maxZoom: 14 })
     } else {
-        cafeMap.setView(torontoCenter, 11)
+        showDowntown()
     }
 }
 
 function describeMap() {
     if (!cafeMap) return
     const total = [...savedCafes.keys()].filter(isInPersonalCollection).length
+    const allPinned = savedMarkers.size + resultMarkers.size
+    const overview = `${allPinned} ${allPinned === 1 ? 'café is' : 'cafés are'} pinned on the map. Click any pin for details.`
     if (total === 0) {
-        mapStatus.textContent = 'Add cafes to your list to pin them on the map.'
+        mapStatus.textContent = overview
         return
     }
 
     const pinned = savedMarkers.size
     const pending = pendingLocations.size
     const failed = [...failedLocations].filter(cafeId => savedCafes.has(cafeId) && !savedMarkers.has(cafeId)).length
-    const parts = [`${pinned} of your ${total} saved ${total === 1 ? 'cafe is' : 'cafes are'} pinned on the map.`]
+    const parts = [overview, `${pinned} of your ${total} saved ${total === 1 ? 'café is' : 'cafés are'} shown with your list pin.`]
     if (pending > 0) parts.push(`Placing ${pending} more…`)
     if (failed > 0) parts.push(`${failed} couldn’t be located from ${failed === 1 ? 'its' : 'their'} address.`)
     mapStatus.textContent = parts.join(' ')
 }
 
+// Searching or loading more cafes leaves the visitor's map view alone; the
+// map starts on downtown and only moves when the visitor asks it to.
 function updateMap(visibleCafes) {
     syncSavedMarkers()
     syncResultMarkers(visibleCafes)
-    fitMapToPins()
     describeMap()
 }
 
@@ -623,8 +664,9 @@ async function showCafeOnMap(cafe) {
 
     const cafeId = String(cafe._id)
     const saved = isInPersonalCollection(cafeId)
-    if (mapPinFilter === 'favorite' && preferences.get(cafeId)?.favorite !== true) {
-        setMapPinFilter('saved')
+    // Switch back to "All Cafés" if the current pin filter would hide this cafe.
+    if ((mapPinFilter === 'saved' && !saved) || (mapPinFilter === 'favorite' && preferences.get(cafeId)?.favorite !== true)) {
+        setMapPinFilter('all', { moveMap: false })
     }
     let marker = saved ? savedMarkers.get(cafeId) : resultMarkers.get(cafeId)
     if (!marker) {
@@ -1095,6 +1137,7 @@ function makeCafeDetails(cafe) {
 function replaceCard(cafe, { focus } = {}) {
     const existing = document.getElementById(`cafe-${String(cafe._id)}`)
     if (!existing) return
+    cardResizeObserver?.unobserve(existing)
     const card = makeCafeCard(cafe)
     existing.replaceWith(card)
     if (focus) card.querySelector(focus)?.focus()
@@ -1188,6 +1231,7 @@ function makeCafeCard(cafe) {
     const card = makeElement('article', inList ? 'cafe-card is-in-list' : 'cafe-card')
     card.id = `cafe-${cafeId}`
     card.tabIndex = -1
+    cardResizeObserver?.observe(card)
 
     const topLine = makeElement('div', 'card-topline')
     topLine.append(makeFavoriteButton(cafe))
@@ -1341,6 +1385,7 @@ function renderCafes(announcement = '') {
     }
 
     const prefix = announcement ? `${announcement} ` : ''
+    cardResizeObserver?.disconnect()
     if (visibleCafes.length === 0) {
         cafeList.replaceChildren()
         loadMoreButton.hidden = true
@@ -1410,6 +1455,7 @@ async function loadCafes(terms = '', selectedCafeId = '', { showSuggestions = fa
             savedCafesLoaded = true
         }
 
+        if (!query) allCafes = cafes
         currentCafes = cafes
         currentQuery = query
         currentSelectedCafeId = selectedCafeId
@@ -1472,16 +1518,18 @@ function setFilter(filter) {
     }
 }
 
-function setMapPinFilter(filter) {
-    mapPinFilter = filter === 'favorite' ? 'favorite' : 'saved'
+function setMapPinFilter(filter, { moveMap = true } = {}) {
+    mapPinFilter = ['saved', 'favorite'].includes(filter) ? filter : 'all'
     for (const button of mapFilterButtons) {
         button.setAttribute('aria-pressed', String(button.dataset.mapFilter === mapPinFilter))
     }
     syncSavedMarkers()
     for (const marker of resultMarkers.values()) {
-        setMarkerVisibility(marker, mapPinFilter === 'saved')
+        setMarkerVisibility(marker, mapPinFilter === 'all')
     }
-    fitMapToPins()
+    if (!moveMap) return
+    if (mapPinFilter === 'all') showDowntown()
+    else fitMapToPins()
 }
 
 for (const button of filterButtons) {
