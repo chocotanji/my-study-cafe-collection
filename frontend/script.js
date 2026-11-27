@@ -1455,7 +1455,15 @@ function renderCafes(announcement = '') {
     listStatus.textContent = prefix
         + `Showing ${pageCafes.length} of ${matchingCount} ${resultLabel}${letterLabel}.${currentQuery && currentFilter === 'all' ? ' Add any of them to your list.' : ''}`
     loadMoreButton.setAttribute('aria-label', 'Load the next 9 cafes')
-    cafeList.replaceChildren(...pageCafes.map(makeCafeCard))
+    // Only cards that were not already on screen animate in, so "Load more"
+    // does not replay the animation on the existing cards.
+    const shownIds = new Set([...cafeList.children].map(card => card.id))
+    const cards = pageCafes.map(cafe => {
+        const card = makeCafeCard(cafe)
+        if (!shownIds.has(card.id)) revealOnScroll(card)
+        return card
+    })
+    cafeList.replaceChildren(...cards)
     updateMap(pageCafes)
 }
 
@@ -1616,6 +1624,73 @@ loadMoreButton.addEventListener('click', () => {
 backToTopButton.addEventListener('click', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
 })
+
+
+// ---- Entrance transitions ----
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+const canReveal = 'IntersectionObserver' in window && !prefersReducedMotion.matches
+const REVEAL_STEP_MS = { card: 70, button: 22, default: 90 }
+
+// Elements fade up the first time they scroll into view. Elements that come
+// into view together are staggered slightly so they cascade in order.
+const revealObserver = canReveal
+    ? new IntersectionObserver(entries => {
+        const visible = entries.filter(entry => entry.isIntersecting).map(entry => entry.target)
+        const counts = {}
+        for (const element of visible) {
+            const kind = element.dataset.revealKind || 'default'
+            const index = counts[kind] = (counts[kind] ?? -1) + 1
+            const step = REVEAL_STEP_MS[kind] ?? REVEAL_STEP_MS.default
+            element.style.setProperty('--reveal-delay', `${Math.min(index * step, 600)}ms`)
+            element.classList.add('is-revealed')
+            revealObserver.unobserve(element)
+        }
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' })
+    : null
+
+function revealOnScroll(element, kind = element.matches('.cafe-card') ? 'card' : 'default') {
+    if (!revealObserver) return
+    element.dataset.revealKind = kind
+    element.classList.add('reveal')
+    revealObserver.observe(element)
+}
+
+for (const element of document.querySelectorAll('.section-heading h2, #cafe-map, .search-form, .back-to-top')) {
+    revealOnScroll(element)
+}
+for (const button of document.querySelectorAll('.map-legend-button, .letter-button, .filter-button, .load-more')) {
+    revealOnScroll(button, 'button')
+}
+
+// Status messages softly fade in whenever their text changes.
+const lastStatusText = new WeakMap()
+function animateTextChange(element) {
+    const text = element.textContent.trim()
+    if (lastStatusText.get(element) === text) return
+    lastStatusText.set(element, text)
+    if (!text || prefersReducedMotion.matches) return
+    element.classList.remove('text-changed')
+    void element.offsetWidth
+    element.classList.add('text-changed')
+}
+
+if ('MutationObserver' in window) {
+    const statusObserver = new MutationObserver(mutations => {
+        const changed = new Set()
+        for (const mutation of mutations) {
+            const node = mutation.target.nodeType === Node.ELEMENT_NODE
+                ? mutation.target
+                : mutation.target.parentElement
+            const status = node?.closest('[role="status"]')
+            if (status) changed.add(status)
+        }
+        changed.forEach(animateTextChange)
+    })
+    for (const root of [listStatus, mapStatus, cafeList]) {
+        statusObserver.observe(root, { childList: true, characterData: true, subtree: true })
+    }
+    for (const status of [listStatus, mapStatus]) lastStatusText.set(status, status.textContent.trim())
+}
 
 initializeMap()
 loadCafes()
