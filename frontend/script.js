@@ -1377,10 +1377,11 @@ const listFilters = {
     }
 }
 
-// First letter of a cafe's name as A–Z, ignoring accents (so "Écully" counts as E).
+// First A–Z letter in a cafe's name, ignoring accents (so "Écully" counts as E)
+// and skipping leading numbers or symbols (so "10 Dean" counts as D).
 function getCafeLetter(cafe) {
-    const first = getCafeName(cafe).trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0)
-    return first.toUpperCase()
+    const name = getCafeName(cafe).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    return name.match(/[a-z]/i)?.[0].toUpperCase() ?? ''
 }
 
 function setLetter(letter) {
@@ -1388,6 +1389,7 @@ function setLetter(letter) {
     for (const button of letterButtons) {
         button.setAttribute('aria-pressed', String(button.dataset.letter === currentLetter))
     }
+    syncFilterButtons()
 }
 
 // Greys out letters that no cafe in the current results starts with.
@@ -1553,8 +1555,15 @@ document.addEventListener('click', event => {
 
 function setFilter(filter) {
     currentFilter = listFilters[filter] ? filter : 'all'
+    syncFilterButtons()
+}
+
+// "All Cafés" only looks selected when no letter is narrowing the list.
+function syncFilterButtons() {
     for (const button of filterButtons) {
-        button.setAttribute('aria-pressed', String(button.dataset.filter === currentFilter))
+        const isPressed = button.dataset.filter === currentFilter
+            && !(button.dataset.filter === 'all' && currentLetter)
+        button.setAttribute('aria-pressed', String(isPressed))
     }
 }
 
@@ -1574,7 +1583,10 @@ function setMapPinFilter(filter, { moveMap = true } = {}) {
 
 for (const button of filterButtons) {
     button.addEventListener('click', () => {
-        if (button.dataset.filter === currentFilter) return
+        // "All Cafés" also clears any active letter so it really shows everything.
+        const clearsLetter = button.dataset.filter === 'all' && currentLetter
+        if (button.dataset.filter === currentFilter && !clearsLetter) return
+        if (clearsLetter) setLetter('')
         setFilter(button.dataset.filter)
         visibleCafeCount = PAGE_SIZE
         currentSelectedCafeId = ''
