@@ -2626,3 +2626,81 @@ button,
   .hero-illustration,
   .hero-latte-art { animation: none; }
 }
+
+/* ---- Button hover: lift slightly as feedback ----
+   Uses the separate `translate` property so it never clashes with the
+   `transform` rules some of these buttons already have. */
+:is(
+  .explore-button,
+  .search-button,
+  .filter-button,
+  .map-legend-button,
+  .load-more,
+  .back-to-top,
+  .favorite-toggle,
+  .primary-button,
+  .secondary-button,
+  .card-map-button,
+  .map-popup-button
+) {
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    filter 0.16s ease,
+    transform 0.15s ease,
+    translate 0.16s ease;
+}
+
+@media (hover: hover) {
+  :is(
+    .explore-button,
+    .search-button,
+    .filter-button,
+    .map-legend-button,
+    .load-more,
+    .back-to-top,
+    .favorite-toggle,
+    .primary-button,
+    .secondary-button,
+    .card-map-button,
+    .map-popup-button
+  ):hover:not(:disabled) {
+    translate: 0 -3px;
+  }
+}
+
+/* Pressed: settle most of the way back down */
+:is(
+  .explore-button,
+  .search-button,
+  .filter-button,
+  .map-legend-button,
+  .load-more,
+  .back-to-top,
+  .favorite-toggle,
+  .primary-button,
+  .secondary-button,
+  .card-map-button,
+  .map-popup-button
+):active:not(:disabled) {
+  translate: 0 -1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(
+    .explore-button,
+    .search-button,
+    .filter-button,
+    .map-legend-button,
+    .load-more,
+    .back-to-top,
+    .favorite-toggle,
+    .primary-button,
+    .secondary-button,
+    .card-map-button,
+    .map-popup-button
+  ):is(:hover, :active) {
+    translate: none;
+  }
+}
