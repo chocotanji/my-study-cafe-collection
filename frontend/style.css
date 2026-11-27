@@ -254,7 +254,6 @@ h1 em {
   align-items: end;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 26px;
 }
 
 .map-intro {
@@ -2698,7 +2697,7 @@ button,
   grid-template-columns: repeat(13, minmax(0, 1fr));
   gap: 6px;
   width: min(612px, 55vw);
-  margin-top: 14px;
+  margin-top: 26px;
 }
 
 .letter-button {
