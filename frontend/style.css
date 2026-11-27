@@ -1584,7 +1584,7 @@ main {
   position: absolute;
   top: 24.8%;
   left: 19.9%;
-  width: 18.34%;
+  width: 19.71%;
   height: auto;
 }
 
@@ -2601,10 +2601,10 @@ button,
 }
 
 .hero-latte-art {
-  transform-origin: 50% 60%;
+  transform-origin: 46.5% 60%;
   animation:
-    latte-pour 1100ms 500ms cubic-bezier(.2, .8, .2, 1) both,
-    latte-float 6s 1.7s ease-in-out infinite;
+    latte-pour 1100ms 1600ms cubic-bezier(.2, .8, .2, 1) both,
+    latte-float 6s 2.7s ease-in-out infinite;
 }
 
 @keyframes book-in {
