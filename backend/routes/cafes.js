@@ -1,9 +1,9 @@
 import express from 'express'
 import { connectToDatabase } from '../database/connect.js'
 import { getConfig } from '../config/environment.js'
+import { cafeSort, normalizeCafe, searchableFields } from '../database/normalizeCafe.js'
 
 const MAX_RESULTS = 200
-const searchableFields = ['title', 'name', 'cafeName', 'address', 'location']
 
 export const cafesRouter = express.Router()
 
@@ -12,11 +12,11 @@ async function listCafes(req, res) {
     const db = await connectToDatabase(config.cafeDatabase)
     const cafes = await db.collection(config.cafeCollection)
         .find({})
-        .sort({ cafeName: 1, title: 1, name: 1 })
+        .sort(cafeSort)
         .limit(MAX_RESULTS)
         .toArray()
 
-    res.json(cafes)
+    res.json(cafes.map(normalizeCafe))
 }
 
 async function searchCafes(req, res) {
@@ -35,11 +35,11 @@ async function searchCafes(req, res) {
         .find({
             $or: searchableFields.map(field => ({ [field]: expression }))
         })
-        .sort({ cafeName: 1, title: 1, name: 1 })
+        .sort(cafeSort)
         .limit(MAX_RESULTS)
         .toArray()
 
-    res.json(cafes)
+    res.json(cafes.map(normalizeCafe))
 }
 
 function escapeRegExp(value) {

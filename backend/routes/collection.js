@@ -3,6 +3,7 @@ import { connectToDatabase } from '../database/connect.js'
 import { getPreferenceCollection } from '../database/preferences.js'
 import { cafeExists, isValidCafeId, toMongoId } from '../database/cafeIds.js'
 import { getConfig } from '../config/environment.js'
+import { cafeSort, normalizeCafe } from '../database/normalizeCafe.js'
 import { ensureAnonymousSession } from '../middleware/anonymousSession.js'
 import { emptyPreference, validateMapLocation } from '../validation/preferences.js'
 
@@ -26,10 +27,10 @@ collectionRouter.get('/', async (req, res) => {
     const cafeDatabase = await connectToDatabase(config.cafeDatabase)
     const cafes = await cafeDatabase.collection(config.cafeCollection)
         .find({ _id: { $in: savedPreferences.map(({ cafeId }) => toMongoId(cafeId)) } })
-        .sort({ cafeName: 1, title: 1, name: 1 })
+        .sort(cafeSort)
         .toArray()
 
-    res.json(cafes)
+    res.json(cafes.map(normalizeCafe))
 })
 
 // Create: add a cafe profile to the personal list with empty preferences.
