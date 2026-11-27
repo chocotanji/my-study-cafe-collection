@@ -852,9 +852,9 @@ function makeRatingSlider({ field, label, lowerIsBetter }, selectedValue, cafeId
 function makeBadges(preference) {
     const badges = makeElement('div', 'card-badges')
     if (preference.recommend === true) {
-        badges.append(makeElement('span', 'badge badge-recommend', '👍 Recommended'))
+        badges.append(makeElement('span', 'badge badge-recommend', 'Recommended'))
     } else if (preference.recommend === false) {
-        badges.append(makeElement('span', 'badge badge-not-recommend', '👎 Not recommended'))
+        badges.append(makeElement('span', 'badge badge-not-recommend', 'Not Recommended'))
     }
 
     const score = studyScore(preference)
