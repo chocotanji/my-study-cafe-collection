@@ -1281,6 +1281,10 @@ h1 em {
   outline-offset: 2px;
 }
 
+.cafe-details[open] summary {
+  border-bottom: 1px solid var(--line);
+}
+
 .cafe-details-body {
   display: grid;
   gap: 10px;
@@ -1301,7 +1305,7 @@ h1 em {
   overflow: auto;
   border: 1px solid var(--line);
   border-top: 0;
-  border-radius: 9px 9px 9px 9px;
+  border-radius: 0 0 9px 9px;
   background: #EFEAE6;
 }
 
@@ -1667,25 +1671,6 @@ main {
   line-height: 1;
   font-family: 'Inria Sans', sans-serif;
   font-size: 1.8rem;
-}
-
-/* Zoom buttons use the BeanThere +/− artwork; Leaflet's text symbols are
-   hidden visually but the buttons keep their accessible labels. */
-.cafe-map .leaflet-bar a.leaflet-control-zoom-in {
-  background-image: url('/assets/map-zoom-in.svg');
-}
-
-.cafe-map .leaflet-bar a.leaflet-control-zoom-out {
-  background-image: url('/assets/map-zoom-out.svg');
-}
-
-.cafe-map .leaflet-control-zoom a span {
-  display: none;
-}
-
-.cafe-map .leaflet-bar a.leaflet-disabled {
-  cursor: default;
-  opacity: 0.45;
 }
 
 .cafe-map .leaflet-control-zoom {
@@ -2370,255 +2355,4 @@ main {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 24px;
   }
-}
-/* Interaction and layout refinements */
-
-/* No red focus outline when the search bar or a rating slider is clicked. */
-.search-form:focus-within,
-.preference-form .rating-field input[type='range']:focus,
-.preference-form .rating-field input[type='range']:focus-visible {
-  outline: none;
-}
-
-/* Lift the expanded "View More Details" panel off the cards below it. */
-.cafe-details[open] .cafe-details-body {
-  box-shadow: 0 14px 28px rgb(73 51 32 / 18%), 0 3px 8px rgb(73 51 32 / 10%);
-}
-
-.preference-form .primary-button {
-  border-radius: 40px;
-}
-
-/* Even spacing inside the cafe profile: one 16px rhythm between sections. */
-.cafe-profile {
-  gap: 16px;
-  margin-top: 20px;
-  padding-top: 20px;
-}
-
-.preference-summary {
-  display: grid;
-  gap: 16px;
-}
-
-.rating-summary {
-  gap: 8px;
-}
-
-.cafe-profile .preference-form {
-  gap: 16px;
-}
-
-.preference-form .rating-scale-hint {
-  margin: 0 0 -8px;
-}
-
-.preference-form .rating-grid {
-  gap: 16px 20px;
-}
-
-.recommend-group {
-  gap: 8px 16px;
-}
-
-.recommend-group legend {
-  margin-bottom: 8px;
-}
-
-.cafe-profile .form-actions,
-.profile-actions,
-.preference-form .form-actions {
-  gap: 12px;
-}
-
-.cafe-profile .collection-action-status {
-  margin: 0;
-}
-
-/* An empty status line should not add extra space at the bottom. */
-.cafe-profile .collection-action-status:empty {
-  min-height: 0;
-  margin-top: -16px;
-}
-
-/* Map pins: every variant is an SVG image with its own outline. */
-.cafe-map .cafe-map-marker.is-result::before,
-.cafe-map .cafe-map-marker.is-result::after {
-  display: none;
-}
-
-/* "All Cafés" map filter button */
-.map-legend .legend-all {
-  display: block;
-  width: 15px;
-  height: 20px;
-  flex: none;
-}
-
-.legend-all-fill {
-  fill: #ffffff;
-  transition: fill 0.16s ease;
-}
-
-.legend-all-stroke {
-  fill: #493320;
-  transition: fill 0.16s ease;
-}
-
-.map-legend-button[data-map-filter='all']:hover:not([aria-pressed='true']) {
-  background: #DCD5CF;
-}
-
-.map-legend-button[aria-pressed='true'][data-map-filter='all'] {
-  border: 2px solid #FFFFFF;
-  padding: 7px 15px;
-  background: #493320;
-  color: #FFFFFF;
-}
-
-.map-legend-button[aria-pressed='true'][data-map-filter='all'] .legend-all-fill {
-  fill: #493320;
-}
-
-.map-legend-button[aria-pressed='true'][data-map-filter='all'] .legend-all-stroke {
-  fill: #FFFFFF;
-}
-
-/* Masonry card grid: cards stack in their own column, so one tall card
-   does not leave a gap beside the others in its row. */
-.cafe-grid.is-masonry {
-  grid-auto-rows: 4px;
-  row-gap: 0;
-  align-items: start;
-}
-
-/* Consistent hover states for every clickable button.
-   Filled buttons: background (and border) lighten by the same amount.
-   White buttons: a soft tint of their accent colour, as on the map filters. */
-
-button,
-.explore-button,
-.cafe-details summary,
-.cafe-map .leaflet-control-zoom a {
-  transition:
-    background-color 0.16s ease,
-    border-color 0.16s ease,
-    color 0.16s ease,
-    filter 0.16s ease;
-}
-
-/* Red buttons: Explore Now, Load More, Cancel, Delete */
-.explore-button:hover,
-.load-more:hover:not(:disabled),
-.secondary-button:hover:not(:disabled),
-.danger-button:hover:not(:disabled) {
-  border-color: #bd6768;
-  background: #bd6768;
-}
-
-/* Green buttons: Edit, Save, Add to List, selected list filters */
-.primary-button:hover:not(:disabled),
-.add-button:hover:not(:disabled),
-.filter-button[aria-pressed='true']:hover,
-.map-legend-button[aria-pressed='true'][data-map-filter='saved']:hover {
-  border-color: #878f5c;
-  background: #878f5c;
-}
-
-.map-legend-button[aria-pressed='true'][data-map-filter='saved']:hover {
-  border-color: #FFFFFF;
-}
-
-/* Selected "Your Favourite" map filter */
-.map-legend-button[aria-pressed='true'][data-map-filter='favorite']:hover {
-  background: #bd6768;
-}
-
-/* Selected "All Cafés" map filter (its pin icon follows the background) */
-.map-legend-button[aria-pressed='true'][data-map-filter='all']:hover {
-  background: #62503f;
-}
-
-.map-legend-button[aria-pressed='true'][data-map-filter='all']:hover .legend-all-fill {
-  fill: #62503f;
-}
-
-/* Brown "Show on Map" button */
-.card-map-button:hover:not(:disabled) {
-  border-color: #938477;
-  background: #938477;
-}
-
-/* "View More Details" */
-.cafe-details summary {
-  border-radius: 9px;
-}
-
-.cafe-details summary:hover {
-  background: #e1dbd6;
-  color: #5f4e42;
-}
-
-.cafe-details[open] summary {
-  border-radius: 9px 9px 0 0;
-}
-
-/* Back to top: the circle is drawn here so it can lighten like the rest. */
-.back-to-top {
-  border-radius: 50%;
-  background: #493320;
-  background-clip: content-box;
-  padding: 1.5px;
-}
-
-.back-to-top:hover {
-  background-color: #62503f;
-}
-
-.back-to-top:hover img {
-  filter: none;
-}
-
-/* White buttons */
-.filter-button:not([aria-pressed='true']):hover {
-  border-color: #e0dcdb;
-  background: #DCD5CF;
-}
-
-.search-button:hover {
-  border-radius: 50%;
-  background: #DCD5CF;
-}
-
-.search-suggestion:hover,
-.search-suggestion:focus-visible {
-  background: #F5F3F1;
-}
-
-.favorite-toggle:hover:not(:disabled) {
-  border-radius: 50%;
-  background: #EAD0D1;
-}
-
-.map-popup-button {
-  margin-left: -8px;
-  padding: 4px 8px;
-  border-radius: 40px;
-}
-
-.map-popup-button:hover {
-  background: #DCD5CF;
-}
-
-/* Map zoom buttons */
-.cafe-map .leaflet-bar a:hover {
-  filter: none;
-}
-
-.cafe-map .leaflet-bar a.leaflet-control-zoom-in:not(.leaflet-disabled):hover {
-  background-image: url('/assets/map-zoom-in-hover.svg');
-}
-
-.cafe-map .leaflet-bar a.leaflet-control-zoom-out:not(.leaflet-disabled):hover {
-  background-image: url('/assets/map-zoom-out-hover.svg');
 }
