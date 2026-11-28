@@ -21,12 +21,8 @@ frontend/
   script.js                      API requests, pagination, map, profiles, and preferences
   style.css                      Responsive page styles
   assets/                        Local illustrations and icons used by the page
-.vscode/mcp.json                 Workspace-scoped Figma MCP configuration for VS Code
-.mcp.json                        Figma MCP configuration for clients using the mcpServers format
 netlify.toml                     Netlify hosting and function routing
 ```
-
-The MCP configuration files are for editor integrations, not application runtime dependencies. Keep both if you use VS Code and another MCP client; remove the one for a client you do not use.
 
 ## Configure the environment
 
