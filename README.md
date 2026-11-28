@@ -134,9 +134,3 @@ A direct API client should first call `/api/session` and then either keep the re
 2. Add `MONGODB_URI`, `CAFE_DATABASE`, `CAFE_COLLECTION`, `USER_INPUT_DATABASE`, and `USER_INPUT_COLLECTION` to Netlify's environment variables for Functions. Mark only `MONGODB_URI` as sensitive; the database names and collection names are public configuration and should be non-sensitive. `PORT` is only used by `npm run dev` / `npm start` and does not need to be set on Netlify. The build configuration omits only those non-sensitive setting names from secret scanning; `MONGODB_URI` is not omitted.
 3. Configure Atlas Network Access for Netlify and use the least-privileged database roles described above.
 4. Verify `/`, `/api/cafes`, `/api/collection`, and `/api/preferences` in a deploy preview. Check Netlify function logs for database errors.
-
-## Security notes
-
-- The fixed collection is read-only through the API. Preference writes are scoped to a high-entropy anonymous browser token.
-- Browser-specific preferences are not an account or a strong identity system; anyone who obtains that browser's token (from its cookie or `localStorage`) could access its saved list.
-- The database URI shared in chat should be treated as exposed. Rotate its password in MongoDB Atlas and update local/Netlify environment settings before use.
